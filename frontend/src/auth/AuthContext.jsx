@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     if (loading) {
-        return <div>Loading...</div>; // Simple loading state for now
+        return <div className="w-screen h-screen bg-white"></div>; // Silent loading state
     }
 
     return (

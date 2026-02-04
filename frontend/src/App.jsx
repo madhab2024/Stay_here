@@ -13,47 +13,62 @@ import Properties from "./pages/owner/Properties";
 import AdminDashboard from "./pages/admin/Dashboard";
 import Users from "./pages/admin/Users";
 import ProtectedRoute from "./auth/ProtectedRoute";
+import { LoaderProvider } from './context/LoaderContext';
+import Loader from './components/Loader';
+import { useLoader } from './hooks/useLoader';
 
 
 
 
 
+function AppContent() {
+  const { isLoading } = useLoader();
+
+  return (
+    <>
+      <Loader isVisible={isLoading} />
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Descendant Routes for different roles */}
+          <Route element={<ProtectedRoute allowedRoles={['customer', 'owner', 'admin']} />}>
+            <Route path="/customer/*" element={<CustomerLayout />}>
+              <Route index element={<Home />} />
+              <Route path="saved" element={<Saved />} />
+              <Route path="trips" element={<Trips />} />
+              <Route path="property/:id" element={<PropertyDetails />} />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
+            <Route path="/owner/*" element={<OwnerLayout />}>
+              <Route path="dashboard" element={<OwnerDashboard />} />
+              <Route path="properties" element={<Properties />} />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="users" element={<Users />} />
+            </Route>
+          </Route>
+
+          {/* Default Redirect */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Router>
+    </>
+  );
+}
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-
-        {/* Descendant Routes for different roles */}
-        <Route element={<ProtectedRoute allowedRoles={['customer', 'owner', 'admin']} />}>
-          <Route path="/customer/*" element={<CustomerLayout />}>
-            <Route index element={<Home />} />
-            <Route path="saved" element={<Saved />} />
-            <Route path="trips" element={<Trips />} />
-            <Route path="property/:id" element={<PropertyDetails />} />
-          </Route>
-        </Route>
-
-        <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
-          <Route path="/owner/*" element={<OwnerLayout />}>
-            <Route path="dashboard" element={<OwnerDashboard />} />
-            <Route path="properties" element={<Properties />} />
-          </Route>
-        </Route>
-
-        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="users" element={<Users />} />
-          </Route>
-        </Route>
-
-        {/* Default Redirect */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Router>
+    <LoaderProvider>
+      <AppContent />
+    </LoaderProvider>
   );
 }
 
