@@ -1,10 +1,20 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
-import { Menu, X, LogOut, Home, Heart, MapPin } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { LogOut, User, Menu, X } from "lucide-react";
 
 const CustomerLayout = () => {
-    const { role, upgradeToOwner, logout } = useAuth();
+    const { user, role, upgradeToOwner, logout } = useAuth();
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -18,104 +28,131 @@ const CustomerLayout = () => {
         navigate('/login');
     };
 
+    const navLinks = [
+        { name: "Explore", path: "/customer/" },
+        { name: "My Trips", path: "/customer/trips" },
+        { name: "Saved", path: "/customer/saved" },
+    ];
+
     return (
-        <div className="min-h-screen bg-white">
-            <nav className="sticky top-0 z-50 bg-white shadow-md border-b border-gray-100">
-                <div className="max-w-7xl mx-auto px-6 py-4">
-                    <div className="flex justify-between items-center">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+            {/* Navbar */}
+            <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex h-16 items-center justify-between">
+
                         {/* Logo */}
-                        <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-gradient-to-br from-teal-600 to-teal-800 rounded-full flex items-center justify-center">
-                                <span className="text-white font-bold text-lg">S</span>
-                            </div>
-                            <span className="font-bold text-xl text-gray-800">Stay Here</span>
+                        <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => navigate('/customer')}>
+                            <span className="text-2xl font-extrabold tracking-tight text-indigo-600">
+                                StayHere.
+                            </span>
                         </div>
 
-                        {/* Desktop Navigation */}
-                        <div className="hidden md:flex items-center space-x-8">
-                            <NavLink 
-                                to="/customer" 
-                                className={({ isActive }) => `flex items-center space-x-1 font-medium transition-colors ${isActive ? 'text-teal-600' : 'text-gray-600 hover:text-teal-600'}`}
-                            >
-                                <Home size={20} />
-                                <span>Home</span>
-                            </NavLink>
-                            <NavLink 
-                                to="/customer/saved" 
-                                className={({ isActive }) => `flex items-center space-x-1 font-medium transition-colors ${isActive ? 'text-teal-600' : 'text-gray-600 hover:text-teal-600'}`}
-                            >
-                                <Heart size={20} />
-                                <span>Saved</span>
-                            </NavLink>
-                            <NavLink 
-                                to="/customer/trips" 
-                                className={({ isActive }) => `flex items-center space-x-1 font-medium transition-colors ${isActive ? 'text-teal-600' : 'text-gray-600 hover:text-teal-600'}`}
-                            >
-                                <MapPin size={20} />
-                                <span>Trips</span>
-                            </NavLink>
+                        {/* Centered Nav Links (Desktop) */}
+                        <div className="hidden md:flex items-center justify-center space-x-8">
+                            {navLinks.map((link) => (
+                                <NavLink
+                                    key={link.name}
+                                    to={link.path}
+                                    end={link.path === '/customer/'} // Strict matching for home
+                                    className={({ isActive }) =>
+                                        `text-sm font-medium transition-colors hover:text-indigo-600 ${isActive ? "text-indigo-600" : "text-gray-600"
+                                        }`
+                                    }
+                                >
+                                    {link.name}
+                                </NavLink>
+                            ))}
                         </div>
 
-                        {/* Right Section */}
-                        <div className="hidden md:flex items-center space-x-4">
+                        {/* Right Side Actions */}
+                        <div className="flex items-center gap-4">
                             {role === 'customer' && (
                                 <button
                                     onClick={handleBecomeHost}
-                                    className="px-4 py-2 border-2 border-teal-600 text-teal-600 rounded-full hover:bg-teal-50 transition font-semibold text-sm"
+                                    className="hidden md:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
                                 >
-                                    Become a Host
+                                    Switch to Hosting
                                 </button>
                             )}
+
+                            {/* User Dropdown */}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                                        <Avatar className="h-10 w-10 border border-gray-200">
+                                            <AvatarImage src={user?.avatar} alt={user?.name} />
+                                            <AvatarFallback><User className="h-5 w-5 text-gray-400" /></AvatarFallback>
+                                        </Avatar>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-56" align="end" forceMount>
+                                    <DropdownMenuLabel className="font-normal">
+                                        <div className="flex flex-col space-y-1">
+                                            <p className="text-sm font-medium leading-none">{user?.name || "User"}</p>
+                                            <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                                        </div>
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => navigate('/profile')}>
+                                        Profile
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => navigate('/customer/trips')}>
+                                        My Trips
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => navigate('/customer/saved')}>
+                                        Saved
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        Log out
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            {/* Mobile Menu Button */}
                             <button
-                                onClick={handleLogout}
-                                className="px-4 py-2 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition font-semibold flex items-center space-x-2 text-sm"
+                                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                className="md:hidden text-gray-600 hover:text-indigo-600"
                             >
-                                <LogOut size={18} />
-                                <span>Logout</span>
+                                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                             </button>
                         </div>
-
-                        {/* Mobile Menu Button */}
-                        <button
-                            onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="md:hidden text-gray-600 hover:text-teal-600"
-                        >
-                            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                        </button>
                     </div>
 
                     {/* Mobile Navigation */}
                     {isMenuOpen && (
                         <div className="md:hidden mt-4 pb-4 border-t border-gray-100 pt-4 space-y-3">
-                            <NavLink 
-                                to="/customer" 
-                                className={({ isActive }) => `block px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-teal-100 text-teal-600 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                            <NavLink
+                                to="/customer"
+                                className={({ isActive }) => `block px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-indigo-100 text-indigo-600 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
                             >
                                 Home
                             </NavLink>
-                            <NavLink 
-                                to="/customer/saved" 
-                                className={({ isActive }) => `block px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-teal-100 text-teal-600 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                            <NavLink
+                                to="/customer/saved"
+                                className={({ isActive }) => `block px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-indigo-100 text-indigo-600 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
                             >
                                 Saved
                             </NavLink>
-                            <NavLink 
-                                to="/customer/trips" 
-                                className={({ isActive }) => `block px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-teal-100 text-teal-600 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
+                            <NavLink
+                                to="/customer/trips"
+                                className={({ isActive }) => `block px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-indigo-100 text-indigo-600 font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}
                             >
                                 Trips
                             </NavLink>
                             {role === 'customer' && (
                                 <button
                                     onClick={handleBecomeHost}
-                                    className="w-full px-4 py-2 border-2 border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition font-semibold"
+                                    className="w-full px-4 py-2 border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition font-semibold"
                                 >
                                     Become a Host
                                 </button>
                             )}
                             <button
                                 onClick={handleLogout}
-                                className="w-full px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-semibold"
+                                className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold"
                             >
                                 Logout
                             </button>
@@ -124,7 +161,8 @@ const CustomerLayout = () => {
                 </div>
             </nav>
 
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            {/* Main Content */}
+            <main className="flex-1 max-w-7xl mx-auto w-full py-6 px-4 sm:px-6 lg:px-8">
                 <Outlet />
             </main>
         </div>

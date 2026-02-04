@@ -50,6 +50,18 @@ const OwnerLayout = () => {
                         <Building2 size={20} />
                         <span>Properties</span>
                     </NavLink>
+
+                    <NavLink
+                        to="/profile"
+                        className={({ isActive }) =>
+                            `px-3 py-2 rounded-md ${isActive
+                                ? "bg-indigo-100 text-indigo-600"
+                                : "text-gray-600 hover:bg-gray-100"
+                            }`
+                        }
+                    >
+                        Profile
+                    </NavLink>
                 </nav>
 
                 <div className="p-4 border-t border-gray-700">

@@ -20,45 +20,34 @@ const Login = () => {
     'Explore New Destinations',
   ], 0.06);
 
-  // Task 4: Redirect if already logged in
+  const [error, setError] = useState('');
+
+  // Task 4: Redirect if already logged in (preserved)
+
   useEffect(() => {
     if (user && role) {
-      showLoader();
-      // Add delay to allow navigation to complete
-      setTimeout(() => {
-        hideLoader();
-      }, 1500);
-
-      setTimeout(() => {
-        if (role === 'admin') navigate('/admin/dashboard', { replace: true });
-        else if (role === 'owner') navigate('/owner/dashboard', { replace: true });
-        else navigate('/customer', { replace: true });
-      }, 500);
+      if (role === 'admin') navigate('/admin/dashboard', { replace: true });
+      else if (role === 'owner') navigate('/owner/dashboard', { replace: true });
+      else navigate('/customer', { replace: true });
     }
-  }, [user, role, navigate, showLoader, hideLoader]);
+  }, [user, role, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     showLoader();
+    setError('');
 
-    // Simulate API call delay
-    setTimeout(() => {
-      // Task 2: Mock role assignment logic
-      let assignedRole = 'customer';
-      if (email.toLowerCase().includes('admin')) assignedRole = 'admin';
-      else if (email.toLowerCase().includes('owner')) assignedRole = 'owner';
+    try {
+      const { loginUser } = await import('../../api/authApi');
+      const data = await loginUser(email, password);
 
-      const userData = { email, name: email.split('@')[0] };
-      const token = 'mock-jwt-token-12345';
+      const loggedInUser = data.user;
+      const assignedRole = loggedInUser.roles && loggedInUser.roles.length > 0 ? loggedInUser.roles[0] : 'customer';
+      const token = data.token;
 
-      // Task 1: Update AuthContext
-      login(userData, token, assignedRole);
+      login(loggedInUser, token, assignedRole);
 
-      // Task 3: Post-login redirect
-      // Check if there's a previous location we were redirected from
       const from = location.state?.from?.pathname;
-
-      // Redirect happens, let the useEffect handle loader hiding
       if (from) {
         navigate(from, { replace: true });
       } else {
@@ -66,7 +55,12 @@ const Login = () => {
         else if (assignedRole === 'owner') navigate('/owner/dashboard', { replace: true });
         else navigate('/customer', { replace: true });
       }
-    }, 1000);
+    } catch (err) {
+      console.error("Login failed", err);
+      setError(err.response?.data?.error || 'Invalid credentials');
+    } finally {
+      hideLoader();
+    }
   };
 
   const handleNavigateToSignUp = () => {
@@ -100,7 +94,7 @@ const Login = () => {
             />
           </div>
           <div className="text-center">
-            <h2 
+            <h2
               ref={typingRef}
               className="text-3xl font-bold text-white min-h-20 flex items-center justify-center relative"
             >
@@ -233,7 +227,7 @@ const Login = () => {
           {/* Sign Up Link */}
           <p className="text-center text-gray-600 text-xs mb-3">
             Don't have an account?{' '}
-            <button 
+            <button
               onClick={handleNavigateToSignUp}
               className="text-teal-600 font-semibold hover:text-teal-700 bg-none border-none cursor-pointer"
             >
@@ -252,6 +246,6 @@ const Login = () => {
       </div>
     </div>
   );
-};
 
+}
 export default Login;

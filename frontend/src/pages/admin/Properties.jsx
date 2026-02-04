@@ -1,8 +1,50 @@
-import { useProperties } from '../../context/PropertyContext';
+import { useState, useEffect } from 'react';
+import { fetchAllPropertiesAdmin, approveProperty, rejectProperty } from '../../api/propertyApi';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 
 const AdminProperties = () => {
-    const { properties, updatePropertyStatus } = useProperties();
-    console.log('AdminProperties: Rendering with properties', properties);
+    const [properties, setProperties] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const loadProperties = async () => {
+        try {
+            const res = await fetchAllPropertiesAdmin();
+            setProperties(res.data || []);
+        } catch (error) {
+            console.error("Failed to load admin properties", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadProperties();
+    }, []);
+
+    const handleApprove = async (id) => {
+        try {
+            await approveProperty(id);
+            await loadProperties(); // Refresh list to see updated status
+        } catch (error) {
+            console.error("Failed to approve property", error);
+            alert("Failed to approve property");
+        }
+    };
+
+    const handleReject = async (id) => {
+        if (!window.confirm("Are you sure you want to reject this property?")) return;
+        try {
+            await rejectProperty(id);
+            await loadProperties();
+        } catch (error) {
+            console.error("Failed to reject property", error);
+            alert("Failed to reject property");
+        }
+    };
+
+    if (loading) return <div className="p-8">Loading moderation queue...</div>;
 
     return (
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -12,52 +54,54 @@ const AdminProperties = () => {
             </div>
 
             <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Property</TableHead>
+                            <TableHead>Location</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {properties.map((property) => (
-                            <tr key={property.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{property.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500">{property.location}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-900">${property.price}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                        ${property.status === 'Available' ? 'bg-green-100 text-green-800' :
-                                            property.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                                'bg-yellow-100 text-yellow-800'}`}>
+                            <TableRow key={property._id || property.id}>
+                                <TableCell className="font-medium text-gray-900">{property.name}</TableCell>
+                                <TableCell className="text-gray-500">{property.location}</TableCell>
+                                <TableCell>
+                                    <Badge variant={
+                                        property.status === 'approved' ? 'success' :
+                                            property.status === 'rejected' ? 'destructive' : 'warning'
+                                    }>
                                         {property.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                    {property.status !== 'Available' && property.status !== 'Rejected' && (
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right space-x-2">
+                                    {property.status === 'pending' && (
                                         <>
-                                            <button
-                                                onClick={() => updatePropertyStatus(property.id, 'Available')}
-                                                className="text-green-600 hover:text-green-900 font-semibold"
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => handleApprove(property._id || property.id)}
+                                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
                                             >
                                                 Approve
-                                            </button>
-                                            <button
-                                                onClick={() => updatePropertyStatus(property.id, 'Rejected')}
-                                                className="text-red-600 hover:text-red-900 font-semibold ml-4"
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => handleReject(property._id || property.id)}
+                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                             >
                                                 Reject
-                                            </button>
+                                            </Button>
                                         </>
                                     )}
-                                </td>
-                            </tr>
+                                </TableCell>
+                            </TableRow>
                         ))}
-                    </tbody>
-                </table>
+                    </TableBody>
+                </Table>
             </div>
         </div>
     );

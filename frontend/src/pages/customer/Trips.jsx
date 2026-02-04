@@ -1,14 +1,31 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
+import { fetchMyBookings } from '../../api/bookingApi';
+
 const Trips = () => {
   const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedBookings = JSON.parse(localStorage.getItem('customer_bookings') || '[]');
-    // Sort by bookedAt (newest first)
-    setBookings(savedBookings.sort((a, b) => new Date(b.bookedAt) - new Date(a.bookedAt)));
+    const loadBookings = async () => {
+      try {
+        const result = await fetchMyBookings();
+        // If the response structure is { data: [...] } or just array, adjust accordingly.
+        // Based on controller, it returns: { success: true, data: [...] }
+        // So propertyApi.js returning response.data -> { success: true, data: [...] }
+        setBookings(result.data || []);
+      } catch (err) {
+        console.error("Failed to fetch trips", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBookings();
   }, []);
+
+  if (loading) return <div className="p-8 text-center text-gray-500">Loading your trips...</div>;
 
   if (bookings.length === 0) {
     return (

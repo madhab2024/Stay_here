@@ -10,15 +10,17 @@ import Trips from "./pages/customer/Trips";
 import PropertyDetails from "./pages/customer/PropertyDetails";
 import OwnerDashboard from "./pages/owner/Dashboard";
 import Properties from "./pages/owner/Properties";
+import ManageRooms from "./pages/owner/ManageRooms";
 import AdminDashboard from "./pages/admin/Dashboard";
 import Users from "./pages/admin/Users";
+import AdminProperties from "./pages/admin/Properties";
+import AdminSettings from "./pages/admin/Settings";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import { LoaderProvider } from './context/LoaderContext';
 import Loader from './components/Loader';
 import { useLoader } from './hooks/useLoader';
-
-
-
+import ProfileLayout from "./pages/profile/ProfileLayout";
+import Profile from "./pages/profile/Profile";
 
 
 function AppContent() {
@@ -46,6 +48,7 @@ function AppContent() {
             <Route path="/owner/*" element={<OwnerLayout />}>
               <Route path="dashboard" element={<OwnerDashboard />} />
               <Route path="properties" element={<Properties />} />
+              <Route path="properties/:id/rooms" element={<ManageRooms />} />
             </Route>
           </Route>
 
@@ -53,6 +56,15 @@ function AppContent() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="users" element={<Users />} />
+              <Route path="properties" element={<AdminProperties />} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
+          </Route>
+
+          {/* Profile Routes - Common for all roles */}
+          <Route element={<ProtectedRoute allowedRoles={['customer', 'owner', 'admin']} />}>
+            <Route path="/profile" element={<ProfileLayout />}>
+              <Route index element={<Profile />} />
             </Route>
           </Route>
 

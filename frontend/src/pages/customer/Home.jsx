@@ -46,8 +46,8 @@ const Home = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    navigate('/customer/properties', { 
-      state: { location, checkIn, checkOut, guests } 
+    navigate('/customer/properties', {
+      state: { location, checkIn, checkOut, guests }
     });
   };
 
@@ -55,7 +55,7 @@ const Home = () => {
     <div className="min-h-screen bg-white">
       {/* Hero Section with Search */}
       <section className="relative h-96 bg-gradient-to-br from-teal-600 to-teal-800 rounded-3xl mx-6 mt-8 mb-16 overflow-hidden">
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             backgroundImage: 'url(https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80)',
@@ -64,7 +64,7 @@ const Home = () => {
             opacity: 0.3,
           }}
         />
-        
+
         <div className="relative h-full flex flex-col items-center justify-center px-6 py-12">
           <h1 className="text-4xl md:text-5xl font-bold text-white text-center mb-4">
             Book your stay with Stay Here
@@ -151,7 +151,7 @@ const Home = () => {
       {/* Popular Destinations */}
       <section className="max-w-7xl mx-auto px-6 mb-20">
         <h2 className="text-3xl font-bold text-gray-800 mb-8">Popular destinations</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {destinations.map((destination) => (
             <div
@@ -163,7 +163,7 @@ const Home = () => {
                 alt={destination.name}
                 className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
               />
-              
+
               {/* Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-300 flex items-end">
                 <div className="w-full p-6">
@@ -187,7 +187,7 @@ const Home = () => {
       {/* Available Properties Section */}
       <section className="max-w-7xl mx-auto px-6 mb-20">
         <h2 className="text-3xl font-bold text-gray-800 mb-8">Available Stays</h2>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {properties
             .filter(property => property.status === 'Available')
@@ -238,7 +238,7 @@ const Home = () => {
       <section className="bg-gradient-to-r from-teal-50 to-cyan-50 py-16 px-6 mb-20 rounded-3xl mx-6">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-800 mb-12 text-center">Why choose Stay Here?</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white p-8 rounded-2xl shadow-md hover:shadow-lg transition">
               <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center mb-4">

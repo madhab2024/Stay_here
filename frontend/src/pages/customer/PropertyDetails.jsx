@@ -5,15 +5,28 @@ import { useProperties } from '../../context/PropertyContext';
 const PropertyDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { properties } = useProperties();
-    const property = properties.find(p => p.id === parseInt(id));
+    const { properties, loading } = useProperties();
+    // Assuming ID is string now from API mapping
+    const property = properties.find(p => p.id === id);
 
-    const [isBookingOpen, setIsBookingOpen] = useState(false);
+    const [selectedRoom, setSelectedRoom] = useState(null);
     const [checkIn, setCheckIn] = useState('');
     const [checkOut, setCheckOut] = useState('');
     const [error, setError] = useState('');
 
-    const handleBook = (e) => {
+    const handleRoomSelect = (room) => {
+        setSelectedRoom(room);
+        setError('');
+    };
+
+    const handleCloseBooking = () => {
+        setSelectedRoom(null);
+        setError('');
+        setCheckIn('');
+        setCheckOut('');
+    };
+
+    const handleBook = async (e) => {
         e.preventDefault();
         setError('');
 
@@ -22,32 +35,26 @@ const PropertyDetails = () => {
             return;
         }
 
-        if (new Date(checkOut) <= new Date(checkIn)) {
-            setError('Check-out date must be after check-in date.');
-            return;
-        }
+        try {
+            // Import dynamically or at top (we'll assume dynamic or add top import in next step if needed)
+            const { createBooking } = await import('../../api/bookingApi');
 
-        const newBooking = {
-            id: Date.now(),
-            propertyId: property.id,
-            propertyName: property.name,
-            location: property.location,
-            price: property.price,
-            image: property.image,
-            dates: {
+            await createBooking({
+                propertyId: property.id,
+                roomId: selectedRoom._id, // Use room._id from backend
                 checkIn,
                 checkOut
-            },
-            bookedAt: new Date().toISOString()
-        };
+            });
 
-        const existingBookings = JSON.parse(localStorage.getItem('customer_bookings') || '[]');
-        localStorage.setItem('customer_bookings', JSON.stringify([...existingBookings, newBooking]));
-
-        navigate('/customer/trips');
+            navigate('/customer/trips');
+        } catch (err) {
+            setError(err.response?.data?.error || 'Booking failed. Please try again.');
+        }
     };
 
-    if (!property || property.status !== 'Available') {
+    if (loading) return <div className="text-center py-12">Loading...</div>;
+
+    if (!property) {
         return (
             <div className="text-center py-12">
                 <h2 className="text-2xl font-bold text-gray-800">Property not found or unavailable</h2>
@@ -57,6 +64,10 @@ const PropertyDetails = () => {
             </div>
         );
     }
+
+    const minPrice = property.rooms && property.rooms.length > 0
+        ? Math.min(...property.rooms.map(r => r.price))
+        : (property.price || 0);
 
     return (
         <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
@@ -93,13 +104,17 @@ const PropertyDetails = () => {
                             {property.location}
                         </p>
                     </div>
-                    <div className="flex flex-col items-end">
-                        <span className="text-3xl font-bold text-gray-900">${property.price}</span>
-                        <span className="text-gray-500">per night</span>
-                    </div>
+                    {minPrice > 0 && (
+                        <div className="flex flex-col items-end">
+                            <span className="text-3xl font-bold text-gray-900">
+                                ${minPrice}
+                            </span>
+                            <span className="text-gray-500">per night / from</span>
+                        </div>
+                    )}
                 </div>
 
-                <div className="prose prose-indigo max-w-none">
+                <div className="prose prose-indigo max-w-none mb-8">
                     <h3 className="text-xl font-semibold text-gray-900 mb-3">About this place</h3>
                     <p className="text-gray-600 leading-relaxed">
                         {property.description}
@@ -107,65 +122,120 @@ const PropertyDetails = () => {
                 </div>
 
                 <div className="mt-8 pt-8 border-t border-gray-100">
-                    {!isBookingOpen ? (
-                        <div className="flex justify-end">
-                            <button
-                                onClick={() => setIsBookingOpen(true)}
-                                className="bg-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
-                            >
-                                Book Now
-                            </button>
-                        </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-6">Available Rooms</h3>
+
+                    {!property.rooms || property.rooms.length === 0 ? (
+                        <p className="text-gray-500">No rooms information available.</p>
                     ) : (
-                        <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4">Complete your booking</h3>
-                            <form onSubmit={handleBook} className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
-                                        <input
-                                            type="date"
-                                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            value={checkIn}
-                                            onChange={(e) => setCheckIn(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
-                                        <input
-                                            type="date"
-                                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            value={checkOut}
-                                            onChange={(e) => setCheckOut(e.target.value)}
-                                            required
-                                        />
+                        <div className="grid gap-6">
+                            {property.rooms.map((room, index) => (
+                                <div key={index} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+                                    <div className="flex flex-col md:flex-row justify-between gap-4">
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h4 className="text-lg font-bold text-gray-900">{room.type}</h4>
+                                                <span className="text-indigo-600 font-bold text-lg">${room.price}<span className="text-sm text-gray-500 font-normal">/night</span></span>
+                                            </div>
+                                            <p className="text-gray-600 mb-3">{room.description}</p>
+                                            <div className="flex items-center text-sm text-gray-500">
+                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                </svg>
+                                                {room.count} rooms total
+                                            </div>
+                                        </div>
+                                        <div className="self-start md:self-center">
+                                            <button
+                                                onClick={() => handleRoomSelect(room)}
+                                                className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap"
+                                            >
+                                                Book Room
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-
-                                {error && (
-                                    <div className="text-red-600 text-sm">{error}</div>
-                                )}
-
-                                <div className="flex justify-end gap-3 pt-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsBookingOpen(false)}
-                                        className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="bg-indigo-600 text-white px-8 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
-                                    >
-                                        Confirm Booking
-                                    </button>
-                                </div>
-                            </form>
+                            ))}
                         </div>
                     )}
                 </div>
+
+                {/* Booking Modal */}
+                {selectedRoom && (
+                    <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                        <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+                            {/* Overlay */}
+                            <div
+                                className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                                aria-hidden="true"
+                                onClick={handleCloseBooking}
+                            ></div>
+
+                            {/* Modal Panel */}
+                            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                    <div className="sm:flex sm:items-start">
+                                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                            <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                                Book {selectedRoom?.type}
+                                            </h3>
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                ${selectedRoom?.price} per night
+                                            </p>
+
+                                            <form onSubmit={handleBook} className="mt-6 space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
+                                                        <input
+                                                            type="date"
+                                                            className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                                            value={checkIn}
+                                                            onChange={(e) => setCheckIn(e.target.value)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
+                                                        <input
+                                                            type="date"
+                                                            className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                                            value={checkOut}
+                                                            onChange={(e) => setCheckOut(e.target.value)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {error && (
+                                                    <div className="p-3 rounded-md bg-red-50 text-sm text-red-600">
+                                                        {error}
+                                                    </div>
+                                                )}
+
+                                                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                                                    <button
+                                                        type="submit"
+                                                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
+                                                    >
+                                                        Confirm Booking
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleCloseBooking}
+                                                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
             </div>
         </div>
     );
