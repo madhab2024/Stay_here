@@ -16,7 +16,7 @@ const generateToken = (id, roles) => {
 // @access  Public
 exports.register = async (req, res, next) => {
     try {
-        const { email, password, roles } = req.body;
+        const { email, password, roles, name, phone } = req.body;
 
         // Check availability
         const userExists = await User.findOne({ email });
@@ -34,6 +34,8 @@ exports.register = async (req, res, next) => {
         const user = await User.create({
             email,
             passwordHash,
+            name: name || '',
+            phone: phone || '',
             roles: roles || ['customer'], // Default role
         });
 
@@ -45,7 +47,9 @@ exports.register = async (req, res, next) => {
             token,
             user: {
                 id: user._id,
+                name: user.name,
                 email: user.email,
+                phone: user.phone,
                 roles: user.roles,
             },
         });
@@ -93,8 +97,46 @@ exports.login = async (req, res, next) => {
             token,
             user: {
                 id: user._id,
+                name: user.name,
                 email: user.email,
+                phone: user.phone,
+                address: user.address,
                 roles: user.roles,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update user profile
+// @route   PUT /auth/profile
+// @access  Private
+exports.updateProfile = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            const error = new Error('User not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        user.name = req.body.name || user.name;
+        user.phone = req.body.phone || user.phone;
+        user.address = req.body.address || user.address;
+
+        const updatedUser = await user.save();
+
+        res.status(200).json({
+            success: true,
+            user: {
+                id: updatedUser._id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                phone: updatedUser.phone,
+                address: updatedUser.address,
+                roles: updatedUser.roles,
             },
         });
     } catch (error) {

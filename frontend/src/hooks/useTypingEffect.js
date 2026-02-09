@@ -17,7 +17,7 @@ export const useTypingEffect = (sentences = [], speed = 0.06) => {
     timelineRef.current = gsap.timeline({ repeat: -1 });
 
     // Loop through each sentence
-    sentences.forEach((sentence, sentenceIndex) => {
+    sentences.forEach((sentence) => {
       const chars = sentence.split('');
 
       // Typing animation

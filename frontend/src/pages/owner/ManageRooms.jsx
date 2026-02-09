@@ -7,6 +7,7 @@ import * as Yup from 'yup';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useCallback } from 'react';
 
 const ManageRooms = () => {
     const { id } = useParams();
@@ -21,9 +22,8 @@ const ManageRooms = () => {
     const [roomData, setRoomData] = useState({ type: '', count: '', price: '' });
     const [editingRoomId, setEditingRoomId] = useState(null);
     const [error, setError] = useState(null);
-    const [submitting, setSubmitting] = useState(false);
 
-    const loadRooms = async () => {
+    const loadRooms = useCallback(async () => {
         try {
             const res = await fetchRooms(id);
             setRooms(res.data || []);
@@ -32,18 +32,15 @@ const ManageRooms = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
         if (id) {
             loadRooms();
         }
-    }, [id]);
+    }, [id, loadRooms]);
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setRoomData(prev => ({ ...prev, [name]: value }));
-    };
+
 
     const handleSaveRoom = async (values, { setSubmitting }) => {
         setError(null);

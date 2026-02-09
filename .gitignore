@@ -7,18 +7,41 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build output
 dist
 dist-ssr
-*.local
+build
+.out
+.vite
+.next
 
-# Editor directories and files
+
+# Database files
+data
+dump
+*.bson
+*.archive
+
+# Cache
+.cache
+.parcel-cache
+.eslintcache
+
+# Editor files
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak

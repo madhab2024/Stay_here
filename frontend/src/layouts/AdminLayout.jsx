@@ -15,85 +15,85 @@ const AdminLayout = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Top Header */}
-            <header className="sticky top-0 z-40 bg-gradient-to-r from-teal-600 to-teal-800 text-white p-4 shadow-lg">
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-4">
+            {/* Top Header - Increased height and padding */}
+            <header className="sticky top-0 z-40 bg-gradient-to-r from-teal-600 to-teal-800 text-white shadow-lg h-24 flex items-center px-8">
+                <div className="flex justify-between items-center w-full">
+                    <div className="flex items-center space-x-6">
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="p-2 hover:bg-teal-700 rounded-lg transition"
+                            className="p-3 hover:bg-teal-700 rounded-xl transition-colors"
                         >
-                            {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+                            {isSidebarOpen ? <X size={28} /> : <Menu size={28} />}
                         </button>
-                        <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                                <span className="text-teal-600 font-bold text-lg">S</span>
+                        <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md">
+                                <span className="text-teal-600 font-bold text-xl">S</span>
                             </div>
-                            <span className="font-bold text-lg tracking-wide">Stay Here Admin</span>
+                            <span className="font-bold text-2xl tracking-wide">Stay Here Admin</span>
                         </div>
                     </div>
                     <button
                         onClick={handleLogout}
-                        className="flex items-center space-x-2 bg-white text-teal-600 hover:bg-gray-100 transition-colors px-4 py-2 rounded-lg font-semibold"
+                        className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 text-white transition-colors px-6 py-3 rounded-xl font-semibold text-lg border border-white/20"
                     >
-                        <LogOut size={18} />
+                        <LogOut size={20} />
                         <span>Logout</span>
                     </button>
                 </div>
             </header>
 
             <div className="flex flex-1 overflow-hidden">
-                {/* Sidebar - Fixed */}
-                <aside 
-                    className={`fixed left-0 top-16 h-screen ${isSidebarOpen ? 'w-64' : 'w-0'} bg-gray-800 text-gray-100 flex-shrink-0 transition-all duration-300 overflow-hidden z-40`}
+                {/* Sidebar - Fixed - Increased width to w-72 */}
+                <aside
+                    className={`fixed left-0 top-24 h-[calc(100vh-6rem)] ${isSidebarOpen ? 'w-72' : 'w-0'} bg-gray-900 text-gray-100 flex-shrink-0 transition-all duration-300 overflow-y-auto z-40 shadow-xl`}
                 >
-                    <nav className="p-4 space-y-2 h-full">
+                    <nav className="p-6 space-y-3 h-full">
                         <NavLink
                             to="/admin/dashboard"
                             className={({ isActive }) =>
-                                `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                    ? "bg-teal-600 text-white font-semibold"
-                                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                                `flex items-center space-x-4 px-5 py-4 rounded-xl transition-all duration-200 text-lg font-medium ${isActive
+                                    ? "bg-teal-600 text-white shadow-lg shadow-teal-900/20"
+                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
                                 }`
                             }
                         >
-                            <LayoutDashboard size={20} />
+                            <LayoutDashboard size={24} />
                             <span>Dashboard</span>
                         </NavLink>
                         <NavLink
                             to="/admin/users"
                             className={({ isActive }) =>
-                                `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                    ? "bg-teal-600 text-white font-semibold"
-                                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                                `flex items-center space-x-4 px-5 py-4 rounded-xl transition-all duration-200 text-lg font-medium ${isActive
+                                    ? "bg-teal-600 text-white shadow-lg shadow-teal-900/20"
+                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
                                 }`
                             }
                         >
-                            <Users size={20} />
+                            <Users size={24} />
                             <span>Users</span>
                         </NavLink>
                         <NavLink
                             to="/admin/properties"
                             className={({ isActive }) =>
-                                `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                    ? "bg-teal-600 text-white font-semibold"
-                                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                                `flex items-center space-x-4 px-5 py-4 rounded-xl transition-all duration-200 text-lg font-medium ${isActive
+                                    ? "bg-teal-600 text-white shadow-lg shadow-teal-900/20"
+                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
                                 }`
                             }
                         >
-                            <Building2 size={20} />
+                            <Building2 size={24} />
                             <span>Properties</span>
                         </NavLink>
                         <NavLink
                             to="/admin/settings"
                             className={({ isActive }) =>
-                                `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                    ? "bg-teal-600 text-white font-semibold"
-                                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                                `flex items-center space-x-4 px-5 py-4 rounded-xl transition-all duration-200 text-lg font-medium ${isActive
+                                    ? "bg-teal-600 text-white shadow-lg shadow-teal-900/20"
+                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
                                 }`
                             }
                         >
-                            <Settings size={20} />
+                            <Settings size={24} />
                             <span>Settings</span>
                         </NavLink>
                         <NavLink

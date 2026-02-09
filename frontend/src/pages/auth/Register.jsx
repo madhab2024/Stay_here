@@ -1,240 +1,222 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { useLoader } from '../../hooks/useLoader';
-import { useTypingEffect } from '../../hooks/useTypingEffect';
-import { Eye, EyeOff } from 'lucide-react';
+import { registerUser } from '../../api/authApi';
+import { Eye, EyeOff, Home } from 'lucide-react';
+import PageTransition from '../../components/common/PageTransition';
 
 const Register = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
   const { login, user, role } = useAuth();
   const navigate = useNavigate();
   const { showLoader, hideLoader } = useLoader();
-  const typingRef = useTypingEffect([
-    'Away from Home, Yet Feels Like Home',
-    'Find Your Perfect Stay',
-    'Experience Comfort & Luxury',
-    'Explore New Destinations',
-  ], 0.06);
 
+  // Redirect if already logged in
   useEffect(() => {
     if (user && role) {
-      showLoader();
-      // Add delay to allow navigation to complete
-      setTimeout(() => {
-        hideLoader();
-      }, 1500);
-
-      setTimeout(() => {
-        if (role === 'admin') navigate('/admin/dashboard', { replace: true });
-        else if (role === 'owner') navigate('/owner/dashboard', { replace: true });
-        else navigate('/customer', { replace: true });
-      }, 500);
+      if (role === 'admin') navigate('/admin/dashboard', { replace: true });
+      else if (role === 'owner') navigate('/owner/dashboard', { replace: true });
+      else navigate('/customer', { replace: true });
     }
-  }, [user, role, navigate, showLoader, hideLoader]);
+  }, [user, role, navigate]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
+    if (!agreeTerms) {
+      setError('Please agree to the Terms & Conditions');
+      return;
+    }
+
+    // Basic phone validation
+    if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
+      setError('Please enter a valid 10-digit mobile number');
+      return;
+    }
+
     showLoader();
 
-    // Simulate API call delay
-    setTimeout(() => {
-      if (password !== confirmPassword) {
-        alert('Passwords do not match!');
-        hideLoader();
-        return;
-      }
+    try {
+      // Call backend API
+      const data = await registerUser({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        phone: formData.phone
+      });
 
-      // Task 2: Mock role assignment logic
-      let assignedRole = 'customer';
-      if (email.toLowerCase().includes('admin')) assignedRole = 'admin';
-      else if (email.toLowerCase().includes('owner')) assignedRole = 'owner';
+      const registeredUser = data.user;
+      const assignedRole = registeredUser.roles?.[0] || 'customer';
+      const token = data.token;
 
-      const userData = { email, name: name };
-      const token = 'mock-jwt-token-12345';
+      // Update auth context
+      login(registeredUser, token, assignedRole);
 
-      // Task 1: Update AuthContext
-      login(userData, token, assignedRole);
-
-      // Task 3: Post-registration redirect
-      // Don't call hideLoader here, let it hide after navigation completes
+      // Redirect based on role
       if (assignedRole === 'admin') navigate('/admin/dashboard', { replace: true });
       else if (assignedRole === 'owner') navigate('/owner/dashboard', { replace: true });
       else navigate('/customer', { replace: true });
-    }, 1000);
-  };
-
-  const handleNavigateToSignIn = () => {
-    showLoader();
-    setTimeout(() => {
-      navigate('/login');
+    } catch (err) {
+      console.error('Registration failed:', err);
+      setError(err.response?.data?.message || err.response?.data?.error || 'Registration failed. Please try again.');
+    } finally {
       hideLoader();
-    }, 500);
+    }
   };
 
   return (
-    <div className="flex h-screen w-screen bg-gray-100 overflow-hidden">
-      {/* Left Section - Hero Image */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-teal-600 to-teal-800 flex-col justify-between p-8 overflow-hidden relative">
-        {/* Logo */}
-        <div className="flex items-center space-x-2 z-10">
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-            <span className="text-teal-700 font-bold text-lg">H</span>
-          </div>
-          <span className="text-white text-2xl font-semibold">Home Away</span>
-        </div>
+    <PageTransition initialX={35} exitX={35} className="flex h-screen w-screen bg-gray-50 overflow-hidden font-sans">
+      {/* Left Section - Hero Image / Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-teal-900 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-800/90 to-teal-900/95 z-10" />
+        <img
+          src="https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+          alt="Luxury Hotel"
+          className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-40 animate-slow-zoom"
+        />
 
-        {/* Hero Image & Text */}
-        <div className="flex flex-col items-center justify-center flex-1 gap-6 z-10 overflow-hidden">
-          <div className="w-full h-48 overflow-hidden rounded-2xl shadow-2xl">
-            <img
-              src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
-              alt="Hero"
-              className="w-full h-full object-cover transition-transform duration-300 ease-out hover:scale-110 cursor-pointer"
-              style={{ transformOrigin: 'center' }}
-            />
-          </div>
-        </div>
+        <div className="relative z-20 flex flex-col justify-between h-full p-12 text-white">
+          <Link to="/" className="flex items-center space-x-3 group cursor-pointer">
+            <div className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 group-hover:bg-white/20 transition-all">
+              <Home className="text-white w-6 h-6" />
+            </div>
+            <span className="text-xl font-medium tracking-wide group-hover:text-white/90 transition-colors">Stay Here</span>
+          </Link>
 
-        {/* Bottom Text & Arrow */}
-        <div className="flex items-end justify-between z-10">
-          <div>
-            <h2 
-              ref={typingRef}
-              className="text-3xl font-bold text-white min-h-20 flex items-center relative"
-            >
+          <div className="space-y-6 max-w-lg">
+            <h2 className="text-5xl font-bold leading-tight tracking-tight">
+              Experience logic <br />
+              <span className="text-teal-200">redefined.</span>
             </h2>
+            <p className="text-lg text-teal-100/80 font-light leading-relaxed">
+              Join thousands of travelers who have found their perfect home away from home.
+              Sign up today and start your journey.
+            </p>
           </div>
-          <button className="flex items-center justify-center w-12 h-12 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30 transition cursor-pointer">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+
+          <div className="flex items-center space-x-2 text-sm text-teal-200/60">
+            <span>© 2026 Stay Here Inc.</span>
+          </div>
         </div>
       </div>
 
       {/* Right Section - Sign Up Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-start h-screen overflow-hidden bg-white">
-        <div className="flex-1 overflow-y-auto pt-6 px-8 lg:px-12 no-scrollbar">
-          {/* User Profile Icon */}
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full border-4 border-gray-300 flex items-center justify-center bg-gray-100">
-              <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-              </svg>
-            </div>
-          </div>
+      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-12 relative">
+        <div className="w-full max-w-md lg:max-w-xl space-y-6 bg-white p-8 lg:p-10 rounded-3xl shadow-2xl border border-gray-100">
 
           {/* Header */}
-          <div className="text-center mb-5">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">SignUp</h1>
-            <p className="text-sm text-gray-500">as</p>
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Create an account</h1>
+            <p className="text-gray-500">Enter your details significantly to get started</p>
           </div>
 
-          {/* Role Selection Tabs */}
-          <div className="flex gap-3 mb-5 justify-center">
-            <button className="py-2 px-6 bg-teal-600 text-white text-sm font-semibold rounded-lg transition hover:bg-teal-700">
-              User
-            </button>
-            <button className="py-2 px-6 border-2 border-teal-600 text-teal-600 text-sm font-semibold rounded-lg hover:bg-teal-50 transition">
-              Business
-            </button>
-          </div>
+          {/* Error Message */}
+          {error && (
+            <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg text-sm flex items-center shadow-sm">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {error}
+            </div>
+          )}
 
           {/* Sign Up Form */}
-          <form onSubmit={handleSubmit} className="space-y-2.5">
-            {/* Name Row */}
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <input
-                  type="text"
-                  id="name"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 transition bg-gray-50"
-                  placeholder="First name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 transition bg-gray-50"
-                  placeholder="Last name"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Email Field */}
-            <div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Name Field */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Full Name</label>
               <input
-                type="email"
-                id="email"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 transition bg-gray-50"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200 placeholder-gray-400 font-medium"
+                placeholder="John Doe"
                 required
               />
             </div>
 
+
+            {/* Email Field */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Email Address</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200 placeholder-gray-400 font-medium"
+                placeholder="john@example.com"
+                required
+              />
+            </div>
+
+            {/* Mobile Field */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Mobile Number</label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200 placeholder-gray-400 font-medium"
+                placeholder="9876543210"
+                required
+              />
+            </div>
+
+
+
             {/* Password Field */}
-            <div>
-              <div className="relative">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Password</label>
+              <div className="relative group">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 transition bg-gray-50"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200 placeholder-gray-400 font-medium pr-10"
+                  placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-teal-600 transition-colors focus:outline-none"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirm Password Field */}
-            <div>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  id="confirmPassword"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 transition bg-gray-50"
-                  placeholder="Confirm password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
 
             {/* Terms & Conditions */}
-            <div className="flex items-start space-x-2 pt-1">
-              <input type="checkbox" id="terms" className="w-4 h-4 text-teal-600 rounded mt-0.5" required />
-              <label htmlFor="terms" className="text-gray-700 text-xs leading-tight">
-                I agree to the the
-                <a href="#" className="text-teal-600 hover:text-teal-700 font-medium ml-1">
-                  Term & Condition
+            <div className="flex items-center space-x-3 pt-2">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+                className="w-5 h-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500 transition cursor-pointer"
+              />
+              <label htmlFor="terms" className="text-gray-600 text-sm">
+                I agree to the
+                <a href="#" className="text-teal-600 hover:text-teal-700 font-semibold ml-1 transition-colors border-b border-teal-600/20 hover:border-teal-600">
+                  Terms & Conditions
                 </a>
               </label>
             </div>
@@ -242,51 +224,27 @@ const Register = () => {
             {/* Sign Up Button */}
             <button
               type="submit"
-              className="w-full bg-teal-600 text-white font-bold py-2.5 px-3 rounded-lg hover:bg-teal-700 transition duration-300 text-sm mt-3"
+              className="w-full bg-gradient-to-r from-teal-600 to-teal-500 text-white font-bold py-3.5 px-4 rounded-xl hover:from-teal-700 hover:to-teal-600 transition-all duration-300 transform hover:-translate-y-0.5 shadow-lg shadow-teal-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 mt-4"
             >
-              SIGN UP
+              Start Journey
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-3">
-            <div className="flex-1 h-px bg-gray-300"></div>
-            <span className="text-gray-400 text-xs">or</span>
-            <div className="flex-1 h-px bg-gray-300"></div>
-          </div>
+
 
           {/* Sign In Link */}
-          <p className="text-center text-gray-600 text-xs mb-3">
+          <p className="text-center text-gray-600 text-sm">
             Already have an account?{' '}
-            <button 
-              onClick={handleNavigateToSignIn}
-              className="text-teal-600 font-semibold hover:text-teal-700 bg-none border-none cursor-pointer"
+            <button
+              onClick={() => navigate('/login')}
+              className="text-teal-600 font-bold hover:text-teal-700 bg-transparent border-none cursor-pointer hover:underline transition-all"
             >
-              Login
+              Log in here
             </button>
           </p>
-
-          {/* Social Sign Up */}
-          <div className="flex gap-3">
-            <button className="flex-1 flex items-center justify-center gap-2 py-2.5 border-2 border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition font-medium text-xs">
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              Google
-            </button>
-            <button className="flex-1 flex items-center justify-center gap-2 py-2.5 border-2 border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition font-medium text-xs">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.08 2.29.74 3.08.8 1.18-.24 2.17-.93 3.53-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.48-2.54 3.09l-.42.02zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-              </svg>
-              Apple
-            </button>
-          </div>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 };
 

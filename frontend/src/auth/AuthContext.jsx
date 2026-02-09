@@ -8,16 +8,23 @@ export const AuthProvider = ({ children }) => {
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // Restore auth state from localStorage on initial load
     useEffect(() => {
-        // Restore auth state from localStorage on load
         const storedUser = localStorage.getItem('user');
         const storedToken = localStorage.getItem('token');
         const storedRole = localStorage.getItem('role');
 
         if (storedUser && storedToken && storedRole) {
-            setUser(JSON.parse(storedUser));
-            setToken(storedToken);
-            setRole(storedRole);
+            try {
+                setUser(JSON.parse(storedUser));
+                setToken(storedToken);
+                setRole(storedRole);
+            } catch (error) {
+                // Clear corrupted data
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+            }
         }
         setLoading(false);
     }, []);
@@ -42,12 +49,30 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('role');
     };
 
+    const updateUser = (userData) => {
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+    };
+
+    const upgradeToOwner = () => {
+        const newRole = 'owner';
+        setRole(newRole);
+        localStorage.setItem('role', newRole);
+
+        // Optionally update user object if roles are stored there too
+        if (user && !user.roles?.includes('owner')) {
+            const updatedUser = { ...user, roles: [...(user.roles || []), 'owner'] };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+    };
+
     if (loading) {
-        return <div className="w-screen h-screen bg-white"></div>; // Silent loading state
+        return <div className="w-screen h-screen bg-white"></div>;
     }
 
     return (
-        <AuthContext.Provider value={{ user, token, role, login, logout }}>
+        <AuthContext.Provider value={{ user, token, role, login, logout, updateUser, upgradeToOwner }}>
             {children}
         </AuthContext.Provider>
     );

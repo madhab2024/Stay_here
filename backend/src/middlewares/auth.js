@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 const config = require('../config/env');
-const { User } = require('../models');
 
 const protect = async (req, res, next) => {
     let token;
@@ -16,13 +16,13 @@ const protect = async (req, res, next) => {
             // Verify token
             const decoded = jwt.verify(token, config.jwtSecret);
 
-            // Get user from the token (exclude password)
-            req.user = await User.findById(decoded.id).select('-passwordHash');
+            // Get user from the token
+            req.user = await User.findById(decoded.id).select('-password');
 
             if (!req.user) {
-                const error = new Error('User not found');
-                error.statusCode = 401;
-                throw error;
+                const err = new Error('User not found');
+                err.statusCode = 401;
+                return next(err);
             }
 
             next();
@@ -34,27 +34,49 @@ const protect = async (req, res, next) => {
     }
 
     if (!token) {
-        const error = new Error('Not authorized, no token');
-        error.statusCode = 401;
-        next(error);
+        const err = new Error('Not authorized, no token');
+        err.statusCode = 401;
+        next(err);
     }
 };
 
+const admin = (req, res, next) => {
+    if (req.user && req.user.roles.includes('admin')) {
+        next();
+    } else {
+        const err = new Error('Not authorized as an admin');
+        err.statusCode = 403;
+        next(err);
+    }
+};
+
+const owner = (req, res, next) => {
+    if (req.user && (req.user.roles.includes('owner') || req.user.roles.includes('admin'))) {
+        next();
+    } else {
+        const err = new Error('Not authorized as an owner');
+        err.statusCode = 403;
+        next(err);
+    }
+};
+
+// Generic authorize function that accepts roles
 const authorize = (...roles) => {
     return (req, res, next) => {
         if (!req.user) {
-             const error = new Error('User not found');
-             error.statusCode = 401;
-             return next(error);
+            const err = new Error('Not authorized');
+            err.statusCode = 401;
+            return next(err);
         }
 
-        if (!req.user.roles || !req.user.roles.some(role => roles.includes(role))) {
-            const error = new Error(`User role ${req.user.roles} is not authorized to access this route`);
-            error.statusCode = 403;
-            return next(error);
+        const hasRole = roles.some(role => req.user.roles.includes(role));
+        if (!hasRole) {
+            const err = new Error(`Not authorized - requires role: ${roles.join(' or ')}`);
+            err.statusCode = 403;
+            return next(err);
         }
         next();
     };
 };
 
-module.exports = { protect, authorize };
+module.exports = { protect, admin, owner, authorize };

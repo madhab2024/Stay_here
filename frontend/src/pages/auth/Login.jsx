@@ -1,29 +1,24 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { useLoader } from '../../hooks/useLoader';
-import { useTypingEffect } from '../../hooks/useTypingEffect';
-import { Eye, EyeOff } from 'lucide-react';
+import { loginUser } from '../../api/authApi';
+import { Eye, EyeOff, Home } from 'lucide-react';
+import PageTransition from '../../components/common/PageTransition';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+
   const { login, user, role } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { showLoader, hideLoader } = useLoader();
-  const typingRef = useTypingEffect([
-    'Away from Home, Yet Feels Like Home',
-    'Find Your Perfect Stay',
-    'Experience Comfort & Luxury',
-    'Explore New Destinations',
-  ], 0.06);
 
-  const [error, setError] = useState('');
-
-  // Task 4: Redirect if already logged in (preserved)
-
+  // Redirect if already logged in
   useEffect(() => {
     if (user && role) {
       if (role === 'admin') navigate('/admin/dashboard', { replace: true });
@@ -34,19 +29,27 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    showLoader();
     setError('');
 
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
+    }
+
+    showLoader();
+
     try {
-      const { loginUser } = await import('../../api/authApi');
+      // Call backend API
       const data = await loginUser(email, password);
 
       const loggedInUser = data.user;
-      const assignedRole = loggedInUser.roles && loggedInUser.roles.length > 0 ? loggedInUser.roles[0] : 'customer';
+      const assignedRole = loggedInUser.roles?.[0] || 'customer';
       const token = data.token;
 
+      // Update auth context
       login(loggedInUser, token, assignedRole);
 
+      // Check for redirect destination
       const from = location.state?.from?.pathname;
       if (from) {
         navigate(from, { replace: true });
@@ -56,97 +59,76 @@ const Login = () => {
         else navigate('/customer', { replace: true });
       }
     } catch (err) {
-      console.error("Login failed", err);
-      setError(err.response?.data?.error || 'Invalid credentials');
+      console.error('Login failed:', err);
+      setError(err.response?.data?.message || err.response?.data?.error || 'Invalid credentials');
     } finally {
       hideLoader();
     }
   };
 
-  const handleNavigateToSignUp = () => {
-    showLoader();
-    setTimeout(() => {
-      navigate('/register');
-      hideLoader();
-    }, 500);
-  };
-
   return (
-    <div className="flex h-screen w-screen bg-white overflow-hidden">
-      {/* Left Section - Hero Image */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-teal-600 to-teal-800 flex-col justify-between p-8 overflow-hidden">
-        {/* Logo */}
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-            <span className="text-teal-700 font-bold text-lg">H</span>
-          </div>
-          <span className="text-white text-xl font-semibold">Stay Here</span>
-        </div>
+    <PageTransition initialX={-35} exitX={-35} className="flex h-screen w-screen bg-gray-50 overflow-hidden font-sans">
+      {/* Left Section - Hero Image / Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-teal-900 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-800/90 to-teal-900/95 z-10" />
+        <img
+          src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
+          alt="Luxury Interior"
+          className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-40 animate-slow-zoom"
+        />
 
-        {/* Hero Image & Text */}
-        <div className="flex flex-col items-center justify-center flex-1 gap-4 overflow-hidden">
-          <div className="w-full h-40 overflow-hidden rounded-lg shadow-xl">
-            <img
-              src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
-              alt="Hero"
-              className="w-full h-full object-cover transition-transform duration-300 ease-out hover:scale-110 cursor-pointer"
-              style={{ transformOrigin: 'center' }}
-            />
-          </div>
-          <div className="text-center">
-            <h2
-              ref={typingRef}
-              className="text-3xl font-bold text-white min-h-20 flex items-center justify-center relative"
-            >
+        <div className="relative z-20 flex flex-col justify-between h-full p-12 text-white">
+          <Link to="/" className="flex items-center space-x-3 group cursor-pointer">
+            <div className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 group-hover:bg-white/20 transition-all">
+              <Home className="text-white w-6 h-6" />
+            </div>
+            <span className="text-xl font-medium tracking-wide group-hover:text-white/90 transition-colors">Stay Here</span>
+          </Link>
+
+          <div className="space-y-6 max-w-lg">
+            <h2 className="text-5xl font-bold leading-tight tracking-tight">
+              Away from Home, <br />
+              <span className="text-teal-200">Yet Feels Like Home.</span>
             </h2>
+            <p className="text-lg text-teal-100/80 font-light leading-relaxed">
+              Sign in to manage your bookings, discover new destinations, and continue your journey with us.
+            </p>
           </div>
-        </div>
 
-        {/* Navigation Arrow */}
-        <div className="flex items-center justify-center w-10 h-10 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30 transition cursor-pointer">
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <div className="flex items-center space-x-2 text-sm text-teal-200/60">
+            <span>© 2026 Stay Here Inc.</span>
+          </div>
         </div>
       </div>
 
       {/* Right Section - Login Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 lg:px-12 py-8 overflow-hidden">
-        <div className="max-h-screen overflow-y-auto">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-12 relative">
+        <div className="w-full max-w-md lg:max-w-xl space-y-6 bg-white p-8 lg:p-10 rounded-3xl shadow-2xl border border-gray-100">
+
           {/* Header */}
-          <div className="mb-6">
-            <div className="flex lg:hidden items-center space-x-2 mb-6">
-              <div className="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-lg">H</span>
-              </div>
-              <span className="text-teal-600 text-xl font-semibold">Stay Here</span>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">Welcome Back!</h1>
-            <p className="text-sm text-gray-500">Sign in to your account</p>
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Welcome Back!</h1>
+            <p className="text-gray-500">Please enter your details to sign in</p>
           </div>
 
-          {/* Role Selection Tabs */}
-          <div className="flex gap-3 mb-6">
-            <button className="flex-1 py-2 px-3 bg-teal-600 text-white text-sm font-semibold rounded-lg transition hover:bg-teal-700">
-              User
-            </button>
-            <button className="flex-1 py-2 px-3 border-2 border-teal-600 text-teal-600 text-sm font-semibold rounded-lg hover:bg-teal-50 transition">
-              Business
-            </button>
-          </div>
+          {/* Error Message */}
+          {error && (
+            <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg text-sm flex items-center shadow-sm">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {error}
+            </div>
+          )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Field */}
-            <div>
-              <label className="block text-gray-700 text-xs font-semibold mb-1" htmlFor="email">
-                Email Address
-              </label>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Email Address</label>
               <input
                 type="email"
                 id="email"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 transition bg-gray-50"
-                placeholder="Enter your email"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200 placeholder-gray-400 font-medium"
+                placeholder="john@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -154,16 +136,16 @@ const Login = () => {
             </div>
 
             {/* Password Field */}
-            <div>
-              <label className="block text-gray-700 text-xs font-semibold mb-1" htmlFor="password">
-                Password
-              </label>
-              <div className="relative">
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Password</label>
+              </div>
+              <div className="relative group">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 transition bg-gray-50"
-                  placeholder="Enter your password"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200 placeholder-gray-400 font-medium pr-10"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -171,81 +153,72 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-teal-600 transition-colors focus:outline-none"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between text-xs">
-              <label className="flex items-center space-x-1">
-                <input type="checkbox" className="w-3 h-3 text-teal-600 rounded" />
-                <span className="text-gray-700">Remember me</span>
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center space-x-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-5 h-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500 transition cursor-pointer"
+                />
+                <span className="text-gray-600 group-hover:text-gray-800 transition-colors">Remember me</span>
               </label>
-              <a href="#" className="text-teal-600 hover:text-teal-700 font-medium">
-                Forgot?
+              <a href="#" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors border-b border-transparent hover:border-teal-600/20">
+                Forgot password?
               </a>
             </div>
 
             {/* Sign In Button */}
             <button
               type="submit"
-              className="w-full bg-teal-600 text-white font-bold py-2 px-3 rounded-lg hover:bg-teal-700 transition duration-300 text-sm mt-4"
+              className="w-full bg-gradient-to-r from-teal-600 to-teal-500 text-white font-bold py-3.5 px-4 rounded-xl hover:from-teal-700 hover:to-teal-600 transition-all duration-300 transform hover:-translate-y-0.5 shadow-lg shadow-teal-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 mt-4"
             >
-              SIGN IN
+              Sign In
             </button>
           </form>
 
           {/* Divider */}
-          <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-px bg-gray-300"></div>
-            <span className="text-gray-400 text-xs">or</span>
-            <div className="flex-1 h-px bg-gray-300"></div>
+          <div className="relative py-0">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-100"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-400">or sign in with</span>
+            </div>
           </div>
 
-          {/* Social Sign In */}
-          <div className="flex gap-3 mb-4">
-            <button className="flex-1 flex items-center justify-center gap-1 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium text-gray-700 text-xs">
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              Google
+          {/* Social Login Dummy Buttons */}
+          <div className="grid grid-cols-2 gap-3 mt-1">
+            <button className="flex items-center justify-center py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors group">
+              <svg className="h-5 w-5 text-gray-600 group-hover:text-gray-800" viewBox="0 0 24 24" fill="currentColor"><path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" /></svg>
             </button>
-            <button className="flex-1 flex items-center justify-center gap-1 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium text-gray-700 text-xs">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.08 2.29.74 3.08.8 1.18-.24 2.17-.93 3.53-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.48-2.54 3.09l-.42.02zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-              </svg>
-              Apple
+            <button className="flex items-center justify-center py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors group">
+              <svg className="h-5 w-5 text-gray-600 group-hover:text-gray-800" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12c0-5.523-4.477-10-10-10z" /></svg>
             </button>
           </div>
 
           {/* Sign Up Link */}
-          <p className="text-center text-gray-600 text-xs mb-3">
+          <p className="text-center text-gray-600 text-sm">
             Don't have an account?{' '}
             <button
-              onClick={handleNavigateToSignUp}
-              className="text-teal-600 font-semibold hover:text-teal-700 bg-none border-none cursor-pointer"
+              onClick={() => navigate('/register')}
+              className="text-teal-600 font-bold hover:text-teal-700 bg-transparent border-none cursor-pointer hover:underline transition-all"
             >
-              Sign up
+              Sign up here
             </button>
           </p>
-
-          {/* Testing Accounts Info */}
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-gray-700">
-            <p className="font-semibold text-blue-900 mb-1">Test Accounts:</p>
-            <p className="text-xs">• admin@test.com</p>
-            <p className="text-xs">• owner@test.com</p>
-            <p className="text-xs">• user@test.com</p>
-          </div>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
+};
 
-}
 export default Login;

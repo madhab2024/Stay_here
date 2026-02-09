@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import CustomerLayout from './layouts/CustomerLayout';
@@ -22,6 +23,55 @@ import { useLoader } from './hooks/useLoader';
 import ProfileLayout from "./pages/profile/ProfileLayout";
 import Profile from "./pages/profile/Profile";
 
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Descendant Routes for different roles */}
+        <Route element={<ProtectedRoute allowedRoles={['customer', 'owner', 'admin']} />}>
+          <Route path="/customer/*" element={<CustomerLayout />}>
+            <Route index element={<Home />} />
+            <Route path="saved" element={<Saved />} />
+            <Route path="trips" element={<Trips />} />
+            <Route path="property/:id" element={<PropertyDetails />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
+          <Route path="/owner/*" element={<OwnerLayout />}>
+            <Route path="dashboard" element={<OwnerDashboard />} />
+            <Route path="properties" element={<Properties />} />
+            <Route path="properties/:id/rooms" element={<ManageRooms />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="users" element={<Users />} />
+            <Route path="properties" element={<AdminProperties />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
+        </Route>
+
+        {/* Profile Routes - Common for all roles */}
+        <Route element={<ProtectedRoute allowedRoles={['customer', 'owner', 'admin']} />}>
+          <Route path="/profile" element={<ProfileLayout />}>
+            <Route index element={<Profile />} />
+          </Route>
+        </Route>
+
+        {/* Default Redirect */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
 
 function AppContent() {
   const { isLoading } = useLoader();
@@ -30,47 +80,7 @@ function AppContent() {
     <>
       <Loader isVisible={isLoading} />
       <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-
-          {/* Descendant Routes for different roles */}
-          <Route element={<ProtectedRoute allowedRoles={['customer', 'owner', 'admin']} />}>
-            <Route path="/customer/*" element={<CustomerLayout />}>
-              <Route index element={<Home />} />
-              <Route path="saved" element={<Saved />} />
-              <Route path="trips" element={<Trips />} />
-              <Route path="property/:id" element={<PropertyDetails />} />
-            </Route>
-          </Route>
-
-          <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
-            <Route path="/owner/*" element={<OwnerLayout />}>
-              <Route path="dashboard" element={<OwnerDashboard />} />
-              <Route path="properties" element={<Properties />} />
-              <Route path="properties/:id/rooms" element={<ManageRooms />} />
-            </Route>
-          </Route>
-
-          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="users" element={<Users />} />
-              <Route path="properties" element={<AdminProperties />} />
-              <Route path="settings" element={<AdminSettings />} />
-            </Route>
-          </Route>
-
-          {/* Profile Routes - Common for all roles */}
-          <Route element={<ProtectedRoute allowedRoles={['customer', 'owner', 'admin']} />}>
-            <Route path="/profile" element={<ProfileLayout />}>
-              <Route index element={<Profile />} />
-            </Route>
-          </Route>
-
-          {/* Default Redirect */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <AnimatedRoutes />
       </Router>
     </>
   );

@@ -15,8 +15,8 @@ const ProfileLayout = () => {
     `;
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-20 pb-12">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gray-50 pt-24 pb-16 flex items-start justify-center">
+            <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden min-h-[600px] flex flex-col md:flex-row">
                     {/* Sidebar */}
                     <aside className="w-full md:w-64 border-r border-gray-100 bg-white">

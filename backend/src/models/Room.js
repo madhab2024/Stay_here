@@ -14,11 +14,11 @@ const roomSchema = new mongoose.Schema({
     capacity: {
         adults: { type: Number, default: 2 },
         children: { type: Number, default: 0 },
-        total: { type: Number, default: 2 }
+        total: { type: Number, default: 2 } 
     },
     count: {
         type: Number,
-        required: true,
+        required: true, 
         default: 1
     },
     basePrice: {

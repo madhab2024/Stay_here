@@ -2,20 +2,57 @@ import { useState } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const Profile = () => {
-    const { user } = useAuth();
+    const { user, updateUser, token } = useAuth();
     const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
 
     const ProfileSchema = Yup.object().shape({
         name: Yup.string().required('Name is required').min(2, 'Name too short'),
         email: Yup.string().email('Invalid email').required('Email is required'),
-        phone: Yup.string().matches(/^[0-9]+$/, "Must be only digits").min(10, 'Must be at least 10 digits'),
+        phone: Yup.string()
+            .matches(/^[0-9+\-\s()]*$/, "Invalid phone number format")
+            .min(10, 'Must be at least 10 digits'),
         address: Yup.string()
     });
+
+    const handleSubmit = async (values, { setSubmitting }) => {
+        setErrorMessage('');
+        setSuccessMessage('');
+
+        try {
+            const response = await fetch('http://localhost:5000/auth/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name: values.name,
+                    phone: values.phone,
+                    address: values.address
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || data.error || 'Failed to update profile');
+            }
+
+            updateUser(data.user);
+            setSuccessMessage('Profile updated successfully!');
+        } catch (error) {
+            console.error('Profile update error:', error);
+            setErrorMessage(error.message || 'Failed to update profile');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     return (
         <div className="max-w-2xl">
@@ -33,6 +70,15 @@ const Profile = () => {
                 </div>
             )}
 
+            {errorMessage && (
+                <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-100 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {errorMessage}
+                </div>
+            )}
+
             <Formik
                 initialValues={{
                     name: user?.name || '',
@@ -40,15 +86,9 @@ const Profile = () => {
                     phone: user?.phone || '',
                     address: user?.address || ''
                 }}
+                enableReinitialize
                 validationSchema={ProfileSchema}
-                onSubmit={(values, { setSubmitting }) => {
-                    setTimeout(() => {
-                        // TODO: Call API to update profile
-                        console.log("Updating profile with:", values);
-                        setSuccessMessage('Profile updated successfully!');
-                        setSubmitting(false);
-                    }, 1000);
-                }}
+                onSubmit={handleSubmit}
             >
                 {({ isSubmitting, errors, touched, getFieldProps }) => (
                     <Form className="space-y-6">
@@ -71,7 +111,7 @@ const Profile = () => {
                                     disabled
                                     className="bg-gray-50 text-gray-500 cursor-not-allowed"
                                 />
-                                <p className="text-xs text-muted-foreground">Email cannot be changed contact support.</p>
+                                <p className="text-xs text-muted-foreground">Email cannot be changed. Contact support.</p>
                             </div>
 
                             <div className="grid gap-2">
