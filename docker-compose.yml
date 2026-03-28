@@ -21,12 +21,16 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # Update this to your EC2 domain/IP at build time!
-        VITE_API_BASE_URL: "http://localhost:5000"
+        # Build-time arg for the React app to know where the API is
+        VITE_API_BASE_URL: "https://stayhere.madhab-mondal.me"
     container_name: stay-here-frontend
     restart: always
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      # Mount the SSL certificates from the EC2 Host to the Container
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
     networks:
