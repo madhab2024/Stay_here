@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Backend Node.js Service
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: stay-here-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    networks:
+      - stay-here-network
+
+  # Frontend Nginx Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Update this to your EC2 domain/IP at build time!
+        VITE_API_BASE_URL: "http://localhost:5000"
+    container_name: stay-here-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - stay-here-network
+
+networks:
+  stay-here-network:
+    driver: bridge
