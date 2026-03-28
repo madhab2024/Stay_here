@@ -49,9 +49,28 @@ exports.getMyProperties = async (req, res, next) => {
 // @access  Public
 exports.getPublicProperties = async (req, res, next) => {
     try {
-        const properties = await Property.find({ status: 'approved' })
-            .populate('ownerId', 'email') // basic owner info
-            .populate('rooms');
+        const { random, limit } = req.query;
+        let properties;
+
+        if (random === 'true') {
+            const size = limit ? parseInt(limit) : 8;
+            properties = await Property.aggregate([
+                { $match: { status: 'approved' } },
+                { $sample: { size } }
+            ]);
+            // Populate owner and rooms
+            properties = await Property.populate(properties, [
+                { path: 'ownerId', select: 'email' },
+                { path: 'rooms' }
+            ]);
+        } else {
+            let queryList = Property.find({ status: 'approved' })
+                .populate('ownerId', 'email')
+                .populate('rooms');
+                
+            if (limit) queryList = queryList.limit(parseInt(limit));
+            properties = await queryList;
+        }
 
         res.status(200).json({
             success: true,

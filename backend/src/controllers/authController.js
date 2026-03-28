@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { User } = require('../models');
+const { User, HostApplication } = require('../models');
 const config = require('../config/env');
 const logger = require('../utils/logger');
 
@@ -138,6 +138,126 @@ exports.updateProfile = async (req, res, next) => {
                 address: updatedUser.address,
                 roles: updatedUser.roles,
             },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Submit Host Application
+// @route   POST /auth/become-host
+// @access  Private
+exports.becomeHost = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            const error = new Error('User not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // Check for existing application
+        const existingApplication = await HostApplication.findOne({ userId: user._id });
+        if (existingApplication) {
+            if (existingApplication.status === 'pending') {
+                const error = new Error('You already have a pending application. Please wait for admin approval.');
+                error.statusCode = 400;
+                throw error;
+            }
+            if (existingApplication.status === 'approved') {
+                const error = new Error('Your application has already been approved. You are already a host.');
+                error.statusCode = 400;
+                throw error;
+            }
+            // If rejected, we allow them to re-apply (delete old one or update)
+            if (existingApplication.status === 'rejected') {
+                await HostApplication.findByIdAndDelete(existingApplication._id);
+            }
+        }
+
+        // Get file URLs
+        const files = req.files || {};
+        const profilePhoto = files.profilePhoto ? files.profilePhoto[0].path : null;
+        const idFrontImage = files.idFrontImage ? files.idFrontImage[0].path : null;
+        const idBackImage = files.idBackImage ? files.idBackImage[0].path : null;
+        const selfieWithId = files.selfieWithId ? files.selfieWithId[0].path : null;
+
+        // Create Host Application with pending status
+        const application = await HostApplication.create({
+            userId: user._id,
+            ...req.body,
+            profilePhoto,
+            idFrontImage,
+            idBackImage,
+            selfieWithId,
+            status: 'pending' // Wait for admin approval
+        });
+
+        // Don't upgrade user role until admin approves
+
+        res.status(200).json({
+            success: true,
+            message: 'Application submitted successfully. Please wait for admin approval.',
+            data: {
+                applicationId: application._id,
+                status: application.status
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get Host Application Status
+// @route   GET /auth/host-status
+// @access  Private
+exports.getHostStatus = async (req, res, next) => {
+    try {
+        const application = await HostApplication.findOne({ userId: req.user.id })
+            .sort({ createdAt: -1 }); // Get the latest application
+
+        if (!application) {
+            return res.status(200).json({
+                success: true,
+                data: {
+                    hasApplication: false,
+                    status: null
+                }
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                hasApplication: true,
+                status: application.status,
+                applicationId: application._id,
+                submittedAt: application.createdAt,
+                updatedAt: application.updatedAt
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get current user info
+// @route   GET /auth/me
+// @access  Private
+exports.getCurrentUser = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user.id).select('-passwordHash');
+
+        if (!user) {
+            const error = new Error('User not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        res.status(200).json({
+            success: true,
+            data: user
         });
     } catch (error) {
         next(error);

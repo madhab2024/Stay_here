@@ -44,9 +44,9 @@ const Register = () => {
       return;
     }
 
-    // Basic phone validation
-    if (formData.phone && !/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
-      setError('Please enter a valid 10-digit mobile number');
+    // Basic phone validation (allowing 10 to 15 digits to support country codes like +91)
+    if (formData.phone && !/^\d{10,15}$/.test(formData.phone.replace(/\D/g, ''))) {
+      setError('Please enter a valid 10 to 15-digit mobile number');
       return;
     }
 
@@ -117,7 +117,7 @@ const Register = () => {
       </div>
 
       {/* Right Section - Sign Up Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-12 relative">
+      <div className="w-full lg:w-1/2 h-full overflow-y-auto flex flex-col justify-center items-center p-6 lg:p-12 relative">
         <div className="w-full max-w-md lg:max-w-xl space-y-6 bg-white p-8 lg:p-10 rounded-3xl shadow-2xl border border-gray-100">
 
           {/* Header */}

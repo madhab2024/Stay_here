@@ -4,10 +4,13 @@ const Property = require('./Property');
 const Room = require('./Room');
 const Booking = require('./Booking');
 
+const HostApplication = require('./HostApplication');
+
 module.exports = {
     User,
     OwnerProfile,
     Property,
     Room,
-    Booking
+    Booking,
+    HostApplication
 };

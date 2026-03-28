@@ -23,3 +23,12 @@
   scrollbar-color: #14b8a6 transparent;
   scrollbar-width: thin;
 }
+
+/* Hide scrollbar for elements with scrollbar-hide class */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;    /* Firefox */
+}

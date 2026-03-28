@@ -102,7 +102,7 @@ const Login = () => {
       </div>
 
       {/* Right Section - Login Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-12 relative">
+      <div className="w-full lg:w-1/2 h-full overflow-y-auto flex flex-col items-center justify-center p-6 lg:p-12 relative">
         <div className="w-full max-w-md lg:max-w-xl space-y-6 bg-white p-8 lg:p-10 rounded-3xl shadow-2xl border border-gray-100">
 
           {/* Header */}

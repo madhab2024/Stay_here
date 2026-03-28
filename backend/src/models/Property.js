@@ -27,6 +27,34 @@ const propertySchema = new mongoose.Schema({
         minStay: { type: Number, default: 1 },
         maxStay: { type: Number, default: 30 }
     },
+    propertyType: {
+        type: String,
+        trim: true
+    },
+    address: {
+        type: String,
+        trim: true
+    },
+    latitude: {
+        type: Number
+    },
+    longitude: {
+        type: Number
+    },
+    rating: {
+        type: Number,
+        default: 0
+    },
+    reviewCount: {
+        type: Number,
+        default: 0
+    },
+    pointsOfInterest: [{
+        type: String
+    }],
+    coverImage: {
+        type: String
+    },
     amenities: [{
         type: String
     }],

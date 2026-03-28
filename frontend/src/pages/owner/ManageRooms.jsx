@@ -157,7 +157,7 @@ const ManageRooms = () => {
                                             <ErrorMessage name="count" component="div" className="text-red-500 text-xs" />
                                         </div>
                                         <div className="grid gap-2">
-                                            <Label htmlFor="price">Price per Night ($)</Label>
+                                            <Label htmlFor="price">Price per Night (₹)</Label>
                                             <Input
                                                 id="price"
                                                 type="number"
@@ -208,7 +208,7 @@ const ManageRooms = () => {
                                 </div>
                                 <div className="flex items-center gap-6">
                                     <div className="text-right">
-                                        <span className="block text-lg font-bold text-indigo-600">${room.basePrice || room.price}</span>
+                                        <span className="block text-lg font-bold text-indigo-600">₹{room.basePrice || room.price}</span>
                                         <span className="text-xs text-gray-400">per night</span>
                                     </div>
                                     <button

@@ -36,7 +36,7 @@ const OwnerDashboard = () => {
     const stats = [
         {
             title: "Total Revenue",
-            value: `$${totalRevenue.toLocaleString()}`,
+            value: `₹${totalRevenue.toLocaleString()}`,
             icon: DollarSign,
             color: "emerald",
             trend: "up",
@@ -175,7 +175,7 @@ const OwnerDashboard = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
-                                            ${booking.price}
+                                            ₹{booking.price}
                                         </td>
                                     </tr>
                                 ))}

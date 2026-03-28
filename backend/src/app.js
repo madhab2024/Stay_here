@@ -12,13 +12,20 @@ const app = express();
 
 // Security & Utility Middleware
 app.use(helmet());
-app.use(cors());
+
+const corsOptions = {
+    origin: true,
+    credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan('dev'));
 
 // Routes
 app.use('/health', healthRoutes);
 app.use('/auth', authRoutes);
+app.use('/customer', require('./routes/customer'));
 app.use('/properties', propertyRoutes);
 app.use('/bookings', require('./routes/bookings'));
 app.use('/rooms', require('./routes/roomUpdates')); // For /rooms/:id updates

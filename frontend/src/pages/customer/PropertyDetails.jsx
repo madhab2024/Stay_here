@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useProperties } from '../../context/PropertyContext';
+import { Star, Heart, Share, ArrowLeft, MapPin, Check, ChevronRight, Users, BedDouble } from 'lucide-react';
 
 const PropertyDetails = () => {
     const { id } = useParams();
@@ -9,234 +10,409 @@ const PropertyDetails = () => {
     // Assuming ID is string now from API mapping
     const property = properties.find(p => p.id === id);
 
-    const [selectedRoom, setSelectedRoom] = useState(null);
-    const [checkIn, setCheckIn] = useState('');
-    const [checkOut, setCheckOut] = useState('');
-    const [error, setError] = useState('');
+    const relatedProperties = useMemo(() => {
+        if (!properties || properties.length === 0 || !property) return [];
+        // Grab other properties
+        const others = properties.filter(p => p.id !== property.id && p.status === 'approved');
+        // Return 4 random ones
+        return [...others].sort(() => 0.5 - Math.random()).slice(0, 4);
+    }, [properties, property]);
+
+    const roomsRef = useRef(null);
+    const [isSaved, setIsSaved] = useState(false);
+
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+        if (property && property.id) {
+            const savedProps = JSON.parse(localStorage.getItem('saved_properties') || '[]');
+            setIsSaved(savedProps.some(p => p.id === property.id));
+        }
+    }, [property]);
+
+    const handleSave = () => {
+        const savedProps = JSON.parse(localStorage.getItem('saved_properties') || '[]');
+        let newSavedProps;
+        if (isSaved) {
+            newSavedProps = savedProps.filter(p => p.id !== property.id);
+        } else {
+            newSavedProps = [...savedProps, property];
+        }
+        localStorage.setItem('saved_properties', JSON.stringify(newSavedProps));
+        setIsSaved(!isSaved);
+    };
+
+    const handleShare = async () => {
+        if (!property) return;
+        const shareData = {
+            title: property.name,
+            text: `Check out ${property.name} on Stay Here!`,
+            url: window.location.href,
+        };
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                await navigator.clipboard.writeText(window.location.href);
+                alert("Link copied to clipboard!");
+            }
+        } catch (err) {
+            console.log("Share cancelled or failed");
+        }
+    };
+
+    const handleCheckAvailability = () => {
+        if (roomsRef.current) {
+            const yOffset = -120; // Compensate for sticky header offsets
+            const y = roomsRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+    };
 
     const handleRoomSelect = (room) => {
-        setSelectedRoom(room);
-        setError('');
+        navigate('/customer/book', { state: { property, room } });
     };
 
-    const handleCloseBooking = () => {
-        setSelectedRoom(null);
-        setError('');
-        setCheckIn('');
-        setCheckOut('');
-    };
-
-    const handleBook = async (e) => {
-        e.preventDefault();
-        setError('');
-
-        if (!checkIn || !checkOut) {
-            setError('Please select both check-in and check-out dates.');
-            return;
-        }
-
-        try {
-            // Import dynamically or at top (we'll assume dynamic or add top import in next step if needed)
-            const { createBooking } = await import('../../api/bookingApi');
-
-            await createBooking({
-                propertyId: property.id,
-                roomId: selectedRoom._id, // Use room._id from backend
-                checkIn,
-                checkOut
-            });
-
-            navigate('/customer/trips');
-        } catch (err) {
-            setError(err.response?.data?.error || 'Booking failed. Please try again.');
-        }
-    };
-
-    if (loading) return <div className="text-center py-12">Loading...</div>;
+    if (loading) return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+            <div className="h-10 bg-gray-200 rounded w-3/4 md:w-1/2 mb-4"></div>
+            <div className="flex gap-4 mb-6">
+                <div className="h-5 bg-gray-200 rounded w-24"></div>
+                <div className="h-5 bg-gray-200 rounded w-32"></div>
+                <div className="h-5 bg-gray-200 rounded w-40"></div>
+            </div>
+            <div className="w-full max-w-6xl mx-auto h-[220px] sm:h-[280px] md:h-[340px] bg-gray-200 rounded-[24px] mb-12"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-12">
+                <div>
+                    <div className="h-8 bg-gray-200 rounded w-1/2 mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/3 mb-10"></div>
+                    <div className="space-y-4">
+                        <div className="h-4 bg-gray-200 rounded w-full"></div>
+                        <div className="h-4 bg-gray-200 rounded w-full"></div>
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    </div>
+                </div>
+                <div>
+                    <div className="h-[400px] bg-gray-200 rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div className="h-8 bg-gray-300 rounded w-1/3 mb-6"></div>
+                        <div className="space-y-4">
+                            <div className="h-12 bg-gray-300 rounded w-full"></div>
+                            <div className="h-12 bg-gray-300 rounded w-full"></div>
+                            <div className="h-14 bg-gray-300 rounded-xl w-full mt-4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 
     if (!property) {
         return (
-            <div className="text-center py-12">
+            <div className="text-center py-24">
                 <h2 className="text-2xl font-bold text-gray-800">Property not found or unavailable</h2>
-                <Link to="/customer" className="text-indigo-600 hover:text-indigo-800 mt-4 inline-block">
-                    &larr; Back to listings
-                </Link>
+                <button onClick={() => navigate(-1)} className="text-[#FF405A] hover:text-red-700 mt-4 inline-block font-bold">
+                    &larr; Go Back
+                </button>
             </div>
         );
     }
 
     const minPrice = property.rooms && property.rooms.length > 0
-        ? Math.min(...property.rooms.map(r => r.price))
+        ? Math.min(...property.rooms.map(r => r.basePrice || r.price || 0))
         : (property.price || 0);
 
     return (
-        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-            <div className="relative h-96">
-                <img
-                    src={property.image}
-                    alt={property.name}
-                    className="w-full h-full object-cover"
-                />
-                <div className="absolute top-4 right-4">
-                    <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-sm font-semibold text-green-700 rounded-full shadow-sm">
-                        {property.status}
-                    </span>
-                </div>
-                <Link
-                    to="/customer"
-                    className="absolute top-4 left-4 p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 hover:text-indigo-600 transition-colors shadow-sm"
-                >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                </Link>
-            </div>
+        <div className="bg-white pb-24 relative">
+            <div className="w-full">
 
-            <div className="p-8">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900">{property.name}</h1>
-                        <p className="flex items-center text-gray-500 mt-2">
-                            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            {property.location}
-                        </p>
-                    </div>
-                    {minPrice > 0 && (
-                        <div className="flex flex-col items-end">
-                            <span className="text-3xl font-bold text-gray-900">
-                                ${minPrice}
+                {/* Header Section (Title & Meta) */}
+                <div className="mb-6">
+                    <h1 className="text-[28px] md:text-3xl font-semibold text-gray-900 mb-2 tracking-tight">
+                        {property.name}
+                    </h1>
+
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-gray-800">
+                            {(property.rating > 0) && (
+                                <>
+                                    <span className="flex items-center gap-1">
+                                        <Star size={15} className="fill-gray-900 text-gray-900" />
+                                        {property.rating.toFixed(1)}
+                                    </span>
+                                    <span className="text-gray-400">·</span>
+                                    <span className="underline cursor-pointer hover:text-gray-600">
+                                        {property.reviewCount} reviews
+                                    </span>
+                                    <span className="text-gray-400 px-1">·</span>
+                                </>
+                            )}
+
+                            {property.propertyType && (
+                                <>
+                                    <span className="text-gray-600 capitalize">
+                                        {property.propertyType}
+                                    </span>
+                                    <span className="text-gray-400 px-1">·</span>
+                                </>
+                            )}
+
+                            <span className="underline font-semibold cursor-pointer hover:text-gray-600">
+                                {property.location}
                             </span>
-                            <span className="text-gray-500">per night / from</span>
                         </div>
-                    )}
+
+                        <div className="flex items-center gap-4 text-sm font-medium text-gray-700">
+                            <button onClick={handleShare} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors">
+                                <Share size={16} /> Share
+                            </button>
+                            <button onClick={handleSave} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors">
+                                <Heart size={16} className={`transition-colors ${isSaved ? "fill-[#FF405A] text-[#FF405A]" : ""}`} /> {isSaved ? "Saved" : "Save"}
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="prose prose-indigo max-w-none mb-8">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3">About this place</h3>
-                    <p className="text-gray-600 leading-relaxed">
-                        {property.description}
-                    </p>
+                {/* Hero Image */}
+                <div className="relative w-full max-w-6xl mx-auto h-[220px] sm:h-[280px] md:h-[340px] rounded-[24px] overflow-hidden mb-12 shadow-sm group border border-gray-100">
+                    <img
+                        src={property.coverImage || property.image || "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb"}
+                        alt={property.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
                 </div>
 
-                <div className="mt-8 pt-8 border-t border-gray-100">
-                    <h3 className="text-xl font-bold text-gray-900 mb-6">Available Rooms</h3>
+                {/* Content Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-12">
 
-                    {!property.rooms || property.rooms.length === 0 ? (
-                        <p className="text-gray-500">No rooms information available.</p>
-                    ) : (
-                        <div className="grid gap-6">
-                            {property.rooms.map((room, index) => (
-                                <div key={index} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-                                    <div className="flex flex-col md:flex-row justify-between gap-4">
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h4 className="text-lg font-bold text-gray-900">{room.type}</h4>
-                                                <span className="text-indigo-600 font-bold text-lg">${room.price}<span className="text-sm text-gray-500 font-normal">/night</span></span>
-                                            </div>
-                                            <p className="text-gray-600 mb-3">{room.description}</p>
-                                            <div className="flex items-center text-sm text-gray-500">
-                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                </svg>
-                                                {room.count} rooms total
-                                            </div>
+                    {/* Left Column (Details) */}
+                    <div>
+                        {/* Host snippet / Meta */}
+                        <div className="flex items-center justify-between pb-6 border-b border-gray-200">
+                            <div>
+                                <h2 className="text-2xl font-semibold text-gray-900 mb-1">
+                                    Hosted by Official Verified Partner
+                                </h2>
+                                <p className="text-gray-500 font-normal">
+                                    {property.amenities?.length || 5} guests · {property.rooms?.length || 1} bedroom · {property.rooms?.reduce((a, b) => a + b.count, 0) || 1} bed · 1 bath
+                                </p>
+                            </div>
+                            <div className="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center shrink-0 border border-gray-300 shadow-sm overflow-hidden">
+                                <span className="text-gray-500 font-bold text-xl">S</span>
+                            </div>
+                        </div>
+
+                        {/* Description */}
+                        <div className="py-8 border-b border-gray-200">
+                            <h3 className="text-xl font-semibold text-gray-900 mb-4">About this space</h3>
+                            <div className="text-gray-700 font-normal leading-relaxed text-[16px]">
+                                {property.description.split('\n').map((line, idx) => (
+                                    <p key={idx} className="mb-4">{line}</p>
+                                ))}
+                            </div>
+                            <button className="flex items-center underline font-semibold mt-2 text-gray-900 hover:text-gray-600">
+                                Show more <ChevronRight size={16} />
+                            </button>
+                        </div>
+
+                        {/* Amenities */}
+                        {property.amenities && property.amenities.length > 0 && (
+                            <div className="py-8 border-b border-gray-200">
+                                <h3 className="text-xl font-semibold text-gray-900 mb-6">What this place offers</h3>
+                                <div className="grid grid-cols-2 gap-y-4 gap-x-8">
+                                    {property.amenities.slice(0, 8).map((amenity, idx) => (
+                                        <div key={idx} className="flex items-center text-gray-700">
+                                            <Check size={20} className="mr-4 text-gray-500 shrink-0" />
+                                            <span className="font-normal">{amenity}</span>
                                         </div>
-                                        <div className="self-start md:self-center">
-                                            <button
-                                                onClick={() => handleRoomSelect(room)}
-                                                className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap"
-                                            >
-                                                Book Room
-                                            </button>
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                                {property.amenities.length > 8 && (
+                                    <button className="mt-8 px-6 py-3 border border-gray-900 rounded-lg font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+                                        Show all {property.amenities.length} amenities
+                                    </button>
+                                )}
+                            </div>
+                        )}
 
-                {/* Booking Modal */}
-                {selectedRoom && (
-                    <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                        <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-                            {/* Overlay */}
-                            <div
-                                className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                                aria-hidden="true"
-                                onClick={handleCloseBooking}
-                            ></div>
+                        {/* Available Rooms */}
+                        <div className="py-8" ref={roomsRef}>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-8 tracking-tight">Select your room</h3>
 
-                            {/* Modal Panel */}
-                            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-                                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                                    <div className="sm:flex sm:items-start">
-                                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                            <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                                Book {selectedRoom?.type}
-                                            </h3>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                ${selectedRoom?.price} per night
-                                            </p>
-
-                                            <form onSubmit={handleBook} className="mt-6 space-y-4">
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
-                                                        <input
-                                                            type="date"
-                                                            className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                                                            value={checkIn}
-                                                            onChange={(e) => setCheckIn(e.target.value)}
-                                                            required
-                                                        />
+                            {!property.rooms || property.rooms.length === 0 ? (
+                                <div className="text-gray-500 bg-gray-50 p-8 rounded-2xl border border-gray-200 text-center">
+                                    <h4 className="font-semibold text-lg mb-2 text-gray-800">No rooms listed right now</h4>
+                                    <p>Please contact the host for availability and rates.</p>
+                                </div>
+                            ) : (
+                                <div className="grid gap-6">
+                                    {property.rooms.map((room, index) => (
+                                        <div key={index} className="border border-gray-200 rounded-3xl p-6 md:p-8 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:border-gray-300 transition-all duration-300 bg-white flex flex-col xl:flex-row justify-between gap-8 relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-pink-50 to-rose-50 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                                            
+                                            <div className="flex-1 relative z-10">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h4 className="text-2xl font-bold tracking-tight text-gray-900">{room.type}</h4>
+                                                    <div className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase border border-green-100 flex-shrink-0">
+                                                        {room.count} Left
                                                     </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
-                                                        <input
-                                                            type="date"
-                                                            className="w-full px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                                                            value={checkOut}
-                                                            onChange={(e) => setCheckOut(e.target.value)}
-                                                            required
-                                                        />
+                                                </div>
+                                                
+                                                <p className="text-gray-500 mb-5 text-[15px] max-w-xl">{room.description || "A beautifully appointed space designed for maximum comfort and relaxation during your stay."}</p>
+                                                
+                                                {/* Capacity Details */}
+                                                <div className="flex flex-wrap items-center gap-3 mt-3 mb-6 text-sm font-medium text-gray-700">
+                                                    <div className="flex items-center gap-2 bg-gray-50/80 px-4 py-2.5 rounded-xl border border-gray-100">
+                                                        <Users size={18} className="text-gray-400" />
+                                                        <span>Up to {room.capacity?.total || 2} guests</span>
+                                                        {room.capacity?.children > 0 && <span className="text-gray-400 text-xs ml-0.5">({room.capacity.children} ch)</span>}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 bg-gray-50/80 px-4 py-2.5 rounded-xl border border-gray-100">
+                                                        <BedDouble size={18} className="text-gray-400" />
+                                                        <span>{room.type?.includes("Suite") ? "1 King Bed" : "1 Queen Bed"}</span>
                                                     </div>
                                                 </div>
 
-                                                {error && (
-                                                    <div className="p-3 rounded-md bg-red-50 text-sm text-red-600">
-                                                        {error}
+                                                {/* Room Amenities */}
+                                                {room.amenities && room.amenities.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2.5 mb-2 mt-4">
+                                                        {room.amenities.map((amenity, idx) => (
+                                                            <span key={idx} className="flex items-center gap-2 text-[13px] font-semibold text-gray-600 bg-white border border-gray-200 px-3.5 py-1.5 rounded-lg shadow-sm">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>{amenity}
+                                                            </span>
+                                                        ))}
                                                     </div>
                                                 )}
+                                            </div>
 
-                                                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                                                    <button
-                                                        type="submit"
-                                                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
-                                                    >
-                                                        Confirm Booking
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleCloseBooking}
-                                                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
-                                                    >
-                                                        Cancel
-                                                    </button>
+                                            {/* Pricing and Action */}
+                                            <div className="shrink-0 flex flex-col xl:items-end xl:justify-center border-t xl:border-t-0 xl:border-l border-gray-100 pt-6 xl:pt-0 xl:pl-8 relative z-10 w-full xl:w-[220px]">
+                                                <div className="flex flex-row xl:flex-col justify-between items-center xl:items-end w-full mb-4 xl:mb-6">
+                                                    <div className="flex flex-col xl:items-end">
+                                                        <div className="text-gray-400 text-sm font-semibold mb-1 line-through xl:text-right">₹{Math.floor((room.basePrice || room.price || 0) * 1.2)}</div>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-4xl font-black text-[#FF405A] tracking-tighter">₹{room.basePrice || room.price}</span>
+                                                        </div>
+                                                        <div className="text-gray-500 text-[11px] font-bold mt-1 uppercase tracking-widest text-right">+ Taxes</div>
+                                                    </div>
                                                 </div>
-                                            </form>
+                                                
+                                                <button
+                                                    onClick={() => handleRoomSelect(room)}
+                                                    className="w-full px-6 py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-[#FF405A] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 transform active:scale-[0.98]"
+                                                >
+                                                    Select & Book
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ))}
                                 </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column (Sticky Booking Widget & Map) */}
+                    <div className="hidden lg:block">
+                        <div className="sticky top-28 flex flex-col gap-6">
+                            <div className="bg-white border border-gray-200 shadow-xl rounded-2xl p-6">
+                                {minPrice > 0 ? (
+                                <>
+                                    <div className="flex items-baseline mb-6 gap-1">
+                                        <span className="text-2xl font-semibold text-gray-900">₹{minPrice}</span>
+                                        <span className="text-gray-500 font-normal text-sm">night</span>
+                                    </div>
+                                    <button onClick={handleCheckAvailability} className="w-full py-3.5 bg-[#FF405A] hover:bg-[#e0354d] text-white font-semibold rounded-lg shadow-md transition-all text-[15px] mb-4">
+                                        Check Availability
+                                    </button>
+                                    <p className="text-center text-gray-500 text-sm font-normal">You won't be charged yet</p>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="mb-6 flex flex-col gap-1">
+                                        <span className="text-2xl font-semibold text-gray-900">Reach out</span>
+                                        <span className="text-sm font-normal text-gray-500">for pricing and dates</span>
+                                    </div>
+                                    <button className="w-full py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg shadow-md transition-all text-[15px]">
+                                        Contact Host
+                                    </button>
+                                </>
+                            )}
+                            </div>
+
+                            {/* Google Maps Location Widget */}
+                            <div className="bg-white border border-gray-200 shadow-xl rounded-2xl p-6">
+                                <h4 className="font-bold text-gray-900 mb-4 tracking-tight">Location</h4>
+                                <div className="relative w-full h-72 rounded-xl overflow-hidden bg-gray-100 shadow-inner">
+                                    <iframe 
+                                        src={`https://maps.google.com/maps?q=${encodeURIComponent(property.name + ' ' + property.location)}&ll=${property.latitude || ''},${property.longitude || ''}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                                        className="absolute top-0 left-0 w-full h-full border-0"
+                                        allowFullScreen="" 
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                    ></iframe>
+                                </div>
+                                <p className="text-[13px] font-medium text-gray-600 mt-4 flex items-start gap-2 leading-relaxed">
+                                    <MapPin size={16} className="shrink-0 text-[#FF405A] mt-0.5" />
+                                    {property.location || "Exact location provided after booking"}
+                                </p>
                             </div>
                         </div>
                     </div>
-                )}
 
+                </div>
+                
+                {/* Related Properties Section */}
+                {relatedProperties && relatedProperties.length > 0 && (
+                    <div className="mt-20 pt-16 border-t border-gray-200">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-8 tracking-tight">Similar properties you might like</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {relatedProperties.map((relatedProp) => (
+                                <Link 
+                                    to={`/customer/property/${relatedProp.id}`} 
+                                    key={relatedProp.id}
+                                    className="group block cursor-pointer"
+                                    onClick={() => window.scrollTo(0, 0)}
+                                >
+                                    <div className="relative aspect-square w-full rounded-2xl overflow-hidden mb-3">
+                                        <img 
+                                            src={relatedProp.coverImage || relatedProp.image || "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb"} 
+                                            alt={relatedProp.name} 
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                        <div className="absolute top-3 right-3">
+                                            <button className="p-1.5 bg-white/70 backdrop-blur-md rounded-full hover:bg-white text-gray-600 hover:text-[#FF405A] transition-colors">
+                                                <Heart size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h4 className="font-semibold text-gray-900 text-[15px] truncate max-w-[200px]">{relatedProp.name}</h4>
+                                            <p className="text-gray-500 text-sm truncate max-w-[200px]">{relatedProp.location}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-sm font-semibold">
+                                            <Star size={14} className="fill-gray-900 text-gray-900" />
+                                            {relatedProp.rating > 0 ? relatedProp.rating.toFixed(1) : "New"}
+                                        </div>
+                                    </div>
+                                    <div className="mt-1">
+                                        <p className="text-sm">
+                                            <span className="font-semibold text-gray-900">
+                                                ₹{
+                                                    relatedProp.rooms && relatedProp.rooms.length > 0
+                                                        ? Math.min(...relatedProp.rooms.map(r => r.basePrice || r.price || 0))
+                                                        : (relatedProp.price || 150)
+                                                }
+                                            </span>
+                                            <span className="text-gray-500 font-normal"> / night</span>
+                                        </p>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
+
         </div>
     );
 };

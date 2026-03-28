@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
-import { Menu, ChevronLeft, LogOut, LayoutDashboard, Building2, ArrowLeftRight } from "lucide-react";
+import { Menu, ChevronLeft, LogOut, LayoutDashboard, Building2, ArrowLeftRight, User } from "lucide-react";
 import { useState } from "react";
 
 const OwnerLayout = () => {
@@ -19,9 +19,9 @@ const OwnerLayout = () => {
             <aside className={`fixed left-0 top-0 h-screen ${isSidebarOpen ? 'w-64' : 'w-0'} bg-white text-gray-800 border-r border-gray-200 flex flex-col transition-all duration-300 shadow-xl z-50 overflow-hidden`}>
                 <div className="p-6 font-bold text-xl flex items-center space-x-3 border-b border-gray-100 h-16">
                     <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <span className="text-white font-bold text-lg">S</span>
+                        <span className="text-white font-bold text-lg">SH</span>
                     </div>
-                    <span className="text-gray-900 tracking-tight">StayHub</span>
+                    <span className="text-gray-900 tracking-tight">StayHere</span>
                 </div>
 
                 <nav className="flex-1 flex flex-col space-y-1 px-4 py-6">
@@ -62,7 +62,7 @@ const OwnerLayout = () => {
                     </NavLink>
 
                     <NavLink
-                        to="/profile"
+                        to="/owner/profile"
                         className={({ isActive }) =>
                             `flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm font-medium mb-2 ${isActive
                                 ? "bg-indigo-50 text-indigo-600"
@@ -70,7 +70,8 @@ const OwnerLayout = () => {
                             }`
                         }
                     >
-                        <span className="flex-1">Profile</span>
+                        <User size={20} />
+                        <span>Profile</span>
                     </NavLink>
 
                     <button

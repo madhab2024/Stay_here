@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
-import { Menu, X, LogOut, LayoutDashboard, Users, Building2, Settings } from "lucide-react";
+import { Menu, X, LogOut, LayoutDashboard, Users, Building2, Settings, UserCheck, User } from "lucide-react";
 import { useState } from "react";
 
 const AdminLayout = () => {
@@ -85,6 +85,18 @@ const AdminLayout = () => {
                             <span>Properties</span>
                         </NavLink>
                         <NavLink
+                            to="/admin/host-applications"
+                            className={({ isActive }) =>
+                                `flex items-center space-x-4 px-5 py-4 rounded-xl transition-all duration-200 text-lg font-medium ${isActive
+                                    ? "bg-teal-600 text-white shadow-lg shadow-teal-900/20"
+                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                                }`
+                            }
+                        >
+                            <UserCheck size={24} />
+                            <span>Host Applications</span>
+                        </NavLink>
+                        <NavLink
                             to="/admin/settings"
                             className={({ isActive }) =>
                                 `flex items-center space-x-4 px-5 py-4 rounded-xl transition-all duration-200 text-lg font-medium ${isActive
@@ -97,15 +109,16 @@ const AdminLayout = () => {
                             <span>Settings</span>
                         </NavLink>
                         <NavLink
-                            to="/profile"
+                            to="/admin/profile"
                             className={({ isActive }) =>
-                                `block px-4 py-2 rounded transition-colors ${isActive
-                                    ? "bg-slate-700 text-white"
-                                    : "hover:bg-slate-700 hover:text-white"
+                                `flex items-center space-x-4 px-5 py-4 rounded-xl transition-all duration-200 text-lg font-medium ${isActive
+                                    ? "bg-teal-600 text-white shadow-lg shadow-teal-900/20"
+                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
                                 }`
                             }
                         >
-                            Profile
+                            <User size={24} />
+                            <span>Profile</span>
                         </NavLink>
                     </nav>
                 </aside>
