@@ -96,7 +96,7 @@ const Login = () => {
           </div>
 
           <div className="flex items-center space-x-2 text-sm text-teal-200/60">
-            <span>© 2026 Stay Here Inc.</span>
+            <span>© 2026 Stay Here Inc. · v2.0</span>
           </div>
         </div>
       </div>
