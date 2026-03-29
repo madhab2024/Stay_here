@@ -72,7 +72,7 @@ const Profile = () => {
     };
 
     return (
-        <div className="space-y-8 max-w-[1400px] mx-auto w-full px-4 lg:px-8">
+        <div className="space-y-8 max-w-[1400px] mx-auto w-full px-4 lg:px-8 pt-4 md:pt-6">
             {/* Minimalist Profile Header */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
                 <div className="flex flex-col sm:flex-row items-center text-center sm:text-left sm:space-x-6 space-y-4 sm:space-y-0">

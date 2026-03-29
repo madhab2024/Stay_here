@@ -23,13 +23,13 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Routes
-app.use('/health', healthRoutes);
-app.use('/auth', authRoutes);
-app.use('/customer', require('./routes/customer'));
-app.use('/properties', propertyRoutes);
-app.use('/bookings', require('./routes/bookings'));
-app.use('/rooms', require('./routes/roomUpdates')); // For /rooms/:id updates
-app.use('/admin', adminRoutes);
+app.use('/api/health', healthRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/customer', require('./routes/customer'));
+app.use('/api/properties', propertyRoutes);
+app.use('/api/bookings', require('./routes/bookings'));
+app.use('/api/rooms', require('./routes/roomUpdates'));
+app.use('/api/admin', adminRoutes);
 
 
 // Global Error Handler
