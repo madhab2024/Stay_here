@@ -7,7 +7,7 @@ services:
     # container_name removed to allow scaling to 2+ instances
     restart: always
     ports:
-      - "5000:5000" 
+      - "5000" 
     env_file:
       - ./backend/.env
     networks:
