@@ -14,3 +14,8 @@ export const getHostStatus = async () => {
     const response = await api.get('/auth/host-status');
     return response.data;
 };
+
+export const loginWithGoogle = async (idToken) => {
+    const response = await api.post('/auth/google', { idToken });
+    return response.data;
+};

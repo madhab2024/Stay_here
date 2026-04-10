@@ -59,6 +59,8 @@ exports.register = async (req, res, next) => {
     }
 };
 
+const admin = require('../config/firebase-admin');
+
 // @desc    Login user
 // @route   POST /auth/login
 // @access  Public
@@ -106,6 +108,74 @@ exports.login = async (req, res, next) => {
         });
     } catch (error) {
         next(error);
+    }
+};
+
+// @desc    Google Login
+// @route   POST /auth/google
+// @access  Public
+exports.googleLogin = async (req, res, next) => {
+    try {
+        const { idToken } = req.body;
+
+        if (!idToken) {
+            const error = new Error('No Google token provided');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // Verify Firebase ID Token
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const { email, name, picture, uid } = decodedToken;
+
+        // Find or create user
+        let user = await User.findOne({ email });
+
+        if (!user) {
+            user = await User.create({
+                email,
+                name: name || '',
+                roles: ['customer'],
+                avatar: picture || '',
+                firebaseUid: uid,
+                // passwordHash is not required because firebaseUid is present
+            });
+            logger.info(`New user created via Google: ${email}`);
+        } else {
+            // Update user info if missing
+            let updated = false;
+            if (!user.firebaseUid) {
+                user.firebaseUid = uid;
+                updated = true;
+            }
+            if (!user.avatar && picture) {
+                user.avatar = picture;
+                updated = true;
+            }
+            if (updated) await user.save();
+        }
+
+        // Generate JWT
+        const token = generateToken(user._id, user.roles);
+
+        res.status(200).json({
+            success: true,
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                avatar: user.avatar,
+                roles: user.roles,
+            },
+        });
+
+    } catch (error) {
+        logger.error(`Google Auth Error: ${error.message}`);
+        res.status(401).json({
+            success: false,
+            message: 'Invalid Google token'
+        });
     }
 };
 

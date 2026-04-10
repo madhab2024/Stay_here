@@ -22,7 +22,18 @@ const userSchema = new mongoose.Schema({
     },
     passwordHash: {
         type: String,
-        required: true
+        required: function() {
+            // Only require password if user is not using social login
+            return !this.firebaseUid;
+        }
+    },
+    avatar: {
+        type: String
+    },
+    firebaseUid: {
+        type: String,
+        unique: true,
+        sparse: true // Allow nulls for email/password users
     },
     roles: {
         type: [String],

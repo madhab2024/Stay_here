@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -24,6 +24,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.authDomain) {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
 // Initialize analytics only if supported/needed, though the snippet just calls it.
 // We'll export it just in case.
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;

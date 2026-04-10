@@ -6,14 +6,20 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: stay-here-backend
+    # container_name removed to allow scaling to 2+ instances
     restart: always
     ports:
-      - "5000:5000"
+      - "5000" 
     env_file:
       - ./backend/.env
     networks:
       - stay-here-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
 
   # Frontend Nginx Service
   frontend:

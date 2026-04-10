@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { useLoader } from '../../hooks/useLoader';
-import { loginUser } from '../../api/authApi';
+import { loginUser, loginWithGoogle } from '../../api/authApi';
+import { auth, googleProvider } from '../../config/firebase';
+import { signInWithPopup } from 'firebase/auth';
 import { Eye, EyeOff, Home } from 'lucide-react';
 import PageTransition from '../../components/common/PageTransition';
 
@@ -26,6 +28,37 @@ const Login = () => {
       else navigate('/customer', { replace: true });
     }
   }, [user, role, navigate]);
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    showLoader();
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const idToken = await result.user.getIdToken();
+      
+      const data = await loginWithGoogle(idToken);
+      
+      const loggedInUser = data.user;
+      const assignedRole = loggedInUser.roles?.[0] || 'customer';
+      const token = data.token;
+
+      login(loggedInUser, token, assignedRole);
+
+      const from = location.state?.from?.pathname;
+      if (from) {
+        navigate(from, { replace: true });
+      } else {
+        if (assignedRole === 'admin') navigate('/admin/dashboard', { replace: true });
+        else if (assignedRole === 'owner') navigate('/owner/dashboard', { replace: true });
+        else navigate('/customer', { replace: true });
+      }
+    } catch (err) {
+      console.error('Google login failed:', err);
+      setError(err.response?.data?.message || 'Google authentication failed');
+    } finally {
+      hideLoader();
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -195,9 +228,13 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Social Login Dummy Buttons */}
+          {/* Social Login Buttons */}
           <div className="grid grid-cols-2 gap-3 mt-1">
-            <button className="flex items-center justify-center py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors group">
+            <button 
+              type="button" 
+              onClick={handleGoogleLogin}
+              className="flex items-center justify-center py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors group"
+            >
               <svg className="h-5 w-5 text-gray-600 group-hover:text-gray-800" viewBox="0 0 24 24" fill="currentColor"><path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" /></svg>
             </button>
             <button className="flex items-center justify-center py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors group">

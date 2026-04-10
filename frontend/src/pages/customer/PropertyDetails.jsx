@@ -1,7 +1,10 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useProperties } from '../../context/PropertyContext';
-import { Star, Heart, Share, ArrowLeft, MapPin, Check, ChevronRight, Users, BedDouble } from 'lucide-react';
+import { Star, Heart, Share, ArrowLeft, MapPin, Check, ChevronRight, Users, BedDouble, Send } from 'lucide-react';
+import api from '../../services/api';
+import { useAuth } from '../../auth/useAuth';
+import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 
 const PropertyDetails = () => {
     const { id } = useParams();
@@ -19,33 +22,115 @@ const PropertyDetails = () => {
     }, [properties, property]);
 
     const roomsRef = useRef(null);
+    const { user } = useAuth();
+    const [liveProperty, setLiveProperty] = useState(null);
+    const [propertyLoading, setPropertyLoading] = useState(true);
     const [isSaved, setIsSaved] = useState(false);
+    const [reviews, setReviews] = useState([]);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
+    
+    // Review form state
+    const [rating, setRating] = useState(5);
+    const [comment, setComment] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'auto' });
-        if (property && property.id) {
-            const savedProps = JSON.parse(localStorage.getItem('saved_properties') || '[]');
-            setIsSaved(savedProps.some(p => p.id === property.id));
+        if (id) {
+            fetchProperty();
+            fetchReviews();
         }
-    }, [property]);
+    }, [id]);
+
+    useEffect(() => {
+        if (liveProperty) {
+            const savedProps = JSON.parse(localStorage.getItem('saved_properties') || '[]');
+            setIsSaved(savedProps.some(p => p.id === liveProperty._id || p.id === liveProperty.id));
+        }
+    }, [liveProperty]);
+
+    const fetchProperty = async () => {
+        setPropertyLoading(true);
+        try {
+            const res = await api.get(`/properties/${id}`);
+            if (res.data.success) {
+                setLiveProperty({
+                    ...res.data.data,
+                    id: res.data.data._id
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching property:", error);
+        } finally {
+            setPropertyLoading(false);
+        }
+    };
+
+    const fetchReviews = async () => {
+        if (!id) return;
+        setReviewsLoading(true);
+        try {
+            const res = await api.get(`/reviews/property/${id}`);
+            if (res.data.success) {
+                setReviews(res.data.data);
+            }
+        } catch (error) {
+            console.error("Error fetching reviews:", error);
+        } finally {
+            setReviewsLoading(false);
+        }
+    };
+
+    const handleRatingSubmit = async (e) => {
+        e.preventDefault();
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        if (!comment.trim()) return;
+
+        setSubmitting(true);
+        try {
+            const res = await api.post('/reviews', {
+                propertyId: id,
+                rating,
+                comment
+            });
+            if (res.data.success) {
+                setComment('');
+                setRating(5);
+                fetchReviews();
+                fetchProperty(); // Refresh property to get new avg rating
+                alert("Review submitted successfully!");
+            }
+        } catch (error) {
+            alert(error.response?.data?.message || error.response?.data?.error || "Failed to submit review. Make sure you have booked this property.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const handleSave = () => {
         const savedProps = JSON.parse(localStorage.getItem('saved_properties') || '[]');
         let newSavedProps;
+        const currentProp = liveProperty || property;
+        if (!currentProp) return;
+
         if (isSaved) {
-            newSavedProps = savedProps.filter(p => p.id !== property.id);
+            newSavedProps = savedProps.filter(p => p.id !== currentProp.id);
         } else {
-            newSavedProps = [...savedProps, property];
+            newSavedProps = [...savedProps, currentProp];
         }
         localStorage.setItem('saved_properties', JSON.stringify(newSavedProps));
         setIsSaved(!isSaved);
     };
 
     const handleShare = async () => {
-        if (!property) return;
+        const currentProp = liveProperty || property;
+        if (!currentProp) return;
         const shareData = {
-            title: property.name,
-            text: `Check out ${property.name} on Stay Here!`,
+            title: currentProp.name,
+            text: `Check out ${currentProp.name} on Stay Here!`,
             url: window.location.href,
         };
         try {
@@ -69,10 +154,11 @@ const PropertyDetails = () => {
     };
 
     const handleRoomSelect = (room) => {
-        navigate('/customer/book', { state: { property, room } });
+        const currentProp = liveProperty || property;
+        navigate('/customer/book', { state: { property: currentProp, room } });
     };
 
-    if (loading) return (
+    if (loading || propertyLoading) return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
             <div className="h-10 bg-gray-200 rounded w-3/4 md:w-1/2 mb-4"></div>
             <div className="flex gap-4 mb-6">
@@ -105,7 +191,7 @@ const PropertyDetails = () => {
         </div>
     );
 
-    if (!property) {
+    if (!liveProperty && !property && !loading && !propertyLoading) {
         return (
             <div className="text-center py-24">
                 <h2 className="text-2xl font-bold text-gray-800">Property not found or unavailable</h2>
@@ -116,47 +202,51 @@ const PropertyDetails = () => {
         );
     }
 
-    const minPrice = property.rooms && property.rooms.length > 0
-        ? Math.min(...property.rooms.map(r => r.basePrice || r.price || 0))
-        : (property.price || 0);
+    const currentProp = liveProperty || property;
+    
+    if (!currentProp) return null;
+
+    const minPrice = currentProp.rooms && currentProp.rooms.length > 0
+        ? Math.min(...currentProp.rooms.map(r => r.basePrice || r.price || 0))
+        : (currentProp.price || 0);
 
     return (
         <div className="bg-white pb-24 relative">
-            <div className="w-full">
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
 
                 {/* Header Section (Title & Meta) */}
                 <div className="mb-6">
                     <h1 className="text-[28px] md:text-3xl font-semibold text-gray-900 mb-2 tracking-tight">
-                        {property.name}
+                        {currentProp.name}
                     </h1>
 
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-gray-800">
-                            {(property.rating > 0) && (
+                            {(currentProp.rating > 0) && (
                                 <>
                                     <span className="flex items-center gap-1">
                                         <Star size={15} className="fill-gray-900 text-gray-900" />
-                                        {property.rating.toFixed(1)}
+                                        {currentProp.rating.toFixed(1)}
                                     </span>
                                     <span className="text-gray-400">·</span>
                                     <span className="underline cursor-pointer hover:text-gray-600">
-                                        {property.reviewCount} reviews
+                                        {currentProp.reviewCount} reviews
                                     </span>
                                     <span className="text-gray-400 px-1">·</span>
                                 </>
                             )}
 
-                            {property.propertyType && (
+                            {currentProp.propertyType && (
                                 <>
                                     <span className="text-gray-600 capitalize">
-                                        {property.propertyType}
+                                        {currentProp.propertyType}
                                     </span>
                                     <span className="text-gray-400 px-1">·</span>
                                 </>
                             )}
 
                             <span className="underline font-semibold cursor-pointer hover:text-gray-600">
-                                {property.location}
+                                {currentProp.location}
                             </span>
                         </div>
 
@@ -174,8 +264,8 @@ const PropertyDetails = () => {
                 {/* Hero Image */}
                 <div className="relative w-full max-w-6xl mx-auto h-[220px] sm:h-[280px] md:h-[340px] rounded-[24px] overflow-hidden mb-12 shadow-sm group border border-gray-100">
                     <img
-                        src={property.coverImage || property.image || "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb"}
-                        alt={property.name}
+                        src={currentProp.coverImage || currentProp.image || "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb"}
+                        alt={currentProp.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     />
                 </div>
@@ -183,7 +273,7 @@ const PropertyDetails = () => {
                 {/* Content Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-12">
 
-                    {/* Left Column (Details) */}
+                    {/* Left Column (Details, Amenities, Rooms) */}
                     <div>
                         {/* Host snippet / Meta */}
                         <div className="flex items-center justify-between pb-6 border-b border-gray-200">
@@ -192,7 +282,7 @@ const PropertyDetails = () => {
                                     Hosted by Official Verified Partner
                                 </h2>
                                 <p className="text-gray-500 font-normal">
-                                    {property.amenities?.length || 5} guests · {property.rooms?.length || 1} bedroom · {property.rooms?.reduce((a, b) => a + b.count, 0) || 1} bed · 1 bath
+                                    {currentProp.amenities?.length || 5} guests · {currentProp.rooms?.length || 1} bedroom · {currentProp.rooms?.reduce((a, b) => a + b.count, 0) || 1} bed · 1 bath
                                 </p>
                             </div>
                             <div className="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center shrink-0 border border-gray-300 shadow-sm overflow-hidden">
@@ -204,7 +294,7 @@ const PropertyDetails = () => {
                         <div className="py-8 border-b border-gray-200">
                             <h3 className="text-xl font-semibold text-gray-900 mb-4">About this space</h3>
                             <div className="text-gray-700 font-normal leading-relaxed text-[16px]">
-                                {property.description.split('\n').map((line, idx) => (
+                                {currentProp.description?.split('\n').map((line, idx) => (
                                     <p key={idx} className="mb-4">{line}</p>
                                 ))}
                             </div>
@@ -214,20 +304,20 @@ const PropertyDetails = () => {
                         </div>
 
                         {/* Amenities */}
-                        {property.amenities && property.amenities.length > 0 && (
+                        {currentProp.amenities && currentProp.amenities.length > 0 && (
                             <div className="py-8 border-b border-gray-200">
                                 <h3 className="text-xl font-semibold text-gray-900 mb-6">What this place offers</h3>
                                 <div className="grid grid-cols-2 gap-y-4 gap-x-8">
-                                    {property.amenities.slice(0, 8).map((amenity, idx) => (
+                                    {currentProp.amenities.slice(0, 8).map((amenity, idx) => (
                                         <div key={idx} className="flex items-center text-gray-700">
                                             <Check size={20} className="mr-4 text-gray-500 shrink-0" />
                                             <span className="font-normal">{amenity}</span>
                                         </div>
                                     ))}
                                 </div>
-                                {property.amenities.length > 8 && (
+                                {currentProp.amenities.length > 8 && (
                                     <button className="mt-8 px-6 py-3 border border-gray-900 rounded-lg font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
-                                        Show all {property.amenities.length} amenities
+                                        Show all {currentProp.amenities.length} amenities
                                     </button>
                                 )}
                             </div>
@@ -237,14 +327,14 @@ const PropertyDetails = () => {
                         <div className="py-8" ref={roomsRef}>
                             <h3 className="text-2xl font-bold text-gray-900 mb-8 tracking-tight">Select your room</h3>
 
-                            {!property.rooms || property.rooms.length === 0 ? (
+                            {!currentProp.rooms || currentProp.rooms.length === 0 ? (
                                 <div className="text-gray-500 bg-gray-50 p-8 rounded-2xl border border-gray-200 text-center">
                                     <h4 className="font-semibold text-lg mb-2 text-gray-800">No rooms listed right now</h4>
                                     <p>Please contact the host for availability and rates.</p>
                                 </div>
                             ) : (
                                 <div className="grid gap-6">
-                                    {property.rooms.map((room, index) => (
+                                    {currentProp.rooms.map((room, index) => (
                                         <div key={index} className="border border-gray-200 rounded-3xl p-6 md:p-8 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:border-gray-300 transition-all duration-300 bg-white flex flex-col xl:flex-row justify-between gap-8 relative overflow-hidden group">
                                             <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-pink-50 to-rose-50 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                                             
@@ -309,56 +399,147 @@ const PropertyDetails = () => {
                         </div>
                     </div>
 
-                    {/* Right Column (Sticky Booking Widget & Map) */}
+                    {/* Right Column (Sticky Sidebar Task: Booking Widget, Reviews, Map) */}
                     <div className="hidden lg:block">
-                        <div className="sticky top-28 flex flex-col gap-6">
+                        <div className="sticky top-28 flex flex-col gap-6 overflow-y-auto max-h-[calc(100vh-120px)] pr-2 custom-scrollbar">
+                            
+                            {/* Booking Widget */}
                             <div className="bg-white border border-gray-200 shadow-xl rounded-2xl p-6">
                                 {minPrice > 0 ? (
-                                <>
-                                    <div className="flex items-baseline mb-6 gap-1">
-                                        <span className="text-2xl font-semibold text-gray-900">₹{minPrice}</span>
-                                        <span className="text-gray-500 font-normal text-sm">night</span>
-                                    </div>
-                                    <button onClick={handleCheckAvailability} className="w-full py-3.5 bg-[#FF405A] hover:bg-[#e0354d] text-white font-semibold rounded-lg shadow-md transition-all text-[15px] mb-4">
-                                        Check Availability
-                                    </button>
-                                    <p className="text-center text-gray-500 text-sm font-normal">You won't be charged yet</p>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="mb-6 flex flex-col gap-1">
-                                        <span className="text-2xl font-semibold text-gray-900">Reach out</span>
-                                        <span className="text-sm font-normal text-gray-500">for pricing and dates</span>
-                                    </div>
-                                    <button className="w-full py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg shadow-md transition-all text-[15px]">
-                                        Contact Host
-                                    </button>
-                                </>
-                            )}
+                                    <>
+                                        <div className="flex items-baseline mb-6 gap-1">
+                                            <span className="text-2xl font-semibold text-gray-900">₹{minPrice}</span>
+                                            <span className="text-gray-500 font-normal text-sm">night</span>
+                                        </div>
+                                        <button onClick={handleCheckAvailability} className="w-full py-3.5 bg-[#FF405A] hover:bg-[#e0354d] text-white font-semibold rounded-lg shadow-md transition-all text-[15px] mb-4">
+                                            Check Availability
+                                        </button>
+                                        <p className="text-center text-gray-500 text-sm font-normal">You won't be charged yet</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="mb-6 flex flex-col gap-1">
+                                            <span className="text-2xl font-semibold text-gray-900">Reach out</span>
+                                            <span className="text-sm font-normal text-gray-500">for pricing and dates</span>
+                                        </div>
+                                        <button className="w-full py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg shadow-md transition-all text-[15px]">
+                                            Contact Host
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
-                            {/* Google Maps Location Widget */}
-                            <div className="bg-white border border-gray-200 shadow-xl rounded-2xl p-6">
-                                <h4 className="font-bold text-gray-900 mb-4 tracking-tight">Location</h4>
-                                <div className="relative w-full h-72 rounded-xl overflow-hidden bg-gray-100 shadow-inner">
+                            {/* Reviews Section in Sidebar */}
+                            <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6">
+                                <div className="flex items-center gap-2 mb-6">
+                                    <Star size={20} className="fill-gray-900 text-gray-900" />
+                                    <h3 className="text-xl font-bold tracking-tight text-gray-900">
+                                        {currentProp.rating > 0 ? currentProp.rating.toFixed(1) : "New"} · {currentProp.reviewCount} reviews
+                                    </h3>
+                                </div>
+
+                                {/* Review Form (Simplified for Sidebar) */}
+                                {user && (
+                                    <div className="mb-8 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                        <h4 className="font-bold text-sm mb-3">Write a review</h4>
+                                        <form onSubmit={handleRatingSubmit} className="space-y-3">
+                                            <div className="flex items-center gap-1.5 mb-2">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        type="button"
+                                                        onClick={() => setRating(star)}
+                                                        className="focus:outline-none transition-transform hover:scale-110"
+                                                    >
+                                                        <Star
+                                                            size={18}
+                                                            className={`${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                                        />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <textarea
+                                                value={comment}
+                                                onChange={(e) => setComment(e.target.value)}
+                                                placeholder="Tell us about your stay..."
+                                                className="w-full p-3 text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF405A]/20 focus:border-[#FF405A] transition-all min-h-[80px]"
+                                                required
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={submitting}
+                                                className="w-full flex items-center justify-center gap-2 bg-[#FF405A] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-50"
+                                            >
+                                                <Send size={14} />
+                                                {submitting ? 'Post...' : 'Post'}
+                                            </button>
+                                        </form>
+                                    </div>
+                                )}
+
+                                {/* Reviews List (Single Column for Sidebar) */}
+                                <div className="space-y-6">
+                                    {reviewsLoading ? (
+                                        [...Array(2)].map((_, idx) => (
+                                            <div key={idx} className="animate-pulse space-y-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                                                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                                                </div>
+                                                <div className="h-3 bg-gray-100 rounded w-full"></div>
+                                            </div>
+                                        ))
+                                    ) : reviews.length === 0 ? (
+                                        <p className="text-gray-500 text-sm italic">No reviews yet.</p>
+                                    ) : (
+                                        reviews.map((review) => (
+                                            <div key={review._id} className="pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <Avatar className="h-9 w-9 border border-gray-100">
+                                                        <AvatarImage src={review.userId?.avatar} />
+                                                        <AvatarFallback className="bg-[#FF405A] text-white text-xs font-bold">
+                                                            {review.userId?.name?.charAt(0) || 'U'}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-bold text-sm text-gray-900">{review.userId?.name || 'Guest'}</p>
+                                                        <p className="text-[11px] text-gray-500">{new Date(review.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1 mb-2">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Star key={i} size={10} className={i < review.rating ? 'fill-gray-900 text-gray-900' : 'text-gray-300'} />
+                                                    ))}
+                                                </div>
+                                                <p className="text-[13px] text-gray-700 leading-relaxed italic line-clamp-3 hover:line-clamp-none cursor-pointer transition-all">"{review.comment}"</p>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Location Map Widget in Sidebar */}
+                            <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6">
+                                <h4 className="font-bold text-gray-900 mb-4 tracking-tight">Neighborhood</h4>
+                                <div className="relative w-full h-48 rounded-xl overflow-hidden bg-gray-100 border border-gray-100">
                                     <iframe 
-                                        src={`https://maps.google.com/maps?q=${encodeURIComponent(property.name + ' ' + property.location)}&ll=${property.latitude || ''},${property.longitude || ''}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                                        src={`https://maps.google.com/maps?q=${encodeURIComponent(currentProp.name + ' ' + currentProp.location)}&ll=${currentProp.latitude || ''},${currentProp.longitude || ''}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                                         className="absolute top-0 left-0 w-full h-full border-0"
                                         allowFullScreen="" 
                                         loading="lazy"
                                         referrerPolicy="no-referrer-when-downgrade"
                                     ></iframe>
                                 </div>
-                                <p className="text-[13px] font-medium text-gray-600 mt-4 flex items-start gap-2 leading-relaxed">
-                                    <MapPin size={16} className="shrink-0 text-[#FF405A] mt-0.5" />
-                                    {property.location || "Exact location provided after booking"}
+                                <p className="text-[12px] font-medium text-gray-600 mt-4 flex items-start gap-2 leading-relaxed">
+                                    <MapPin size={14} className="shrink-0 text-[#FF405A] mt-0.5" />
+                                    <span>{currentProp.location || "Exact location provided after booking"}</span>
                                 </p>
                             </div>
                         </div>
                     </div>
 
                 </div>
-                
+
                 {/* Related Properties Section */}
                 {relatedProperties && relatedProperties.length > 0 && (
                     <div className="mt-20 pt-16 border-t border-gray-200">
@@ -412,7 +593,6 @@ const PropertyDetails = () => {
                     </div>
                 )}
             </div>
-
         </div>
     );
 };

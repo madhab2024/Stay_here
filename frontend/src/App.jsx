@@ -33,17 +33,20 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Navigate to="/customer" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Descendant Routes for different roles */}
-        <Route element={<ProtectedRoute allowedRoles={['customer', 'owner', 'admin']} />}>
-          <Route path="/customer/*" element={<CustomerLayout />}>
-            <Route index element={<Home />} />
+        {/* Public Customer Routes */}
+        <Route path="/customer/*" element={<CustomerLayout />}>
+          <Route index element={<Home />} />
+          <Route path="properties" element={<Explore />} />
+          <Route path="property/:id" element={<PropertyDetails />} />
+          
+          {/* Protected Customer Actions */}
+          <Route element={<ProtectedRoute allowedRoles={['customer', 'owner', 'admin']} />}>
             <Route path="saved" element={<Navigate to="/customer/profile/saved" replace />} />
             <Route path="trips" element={<Navigate to="/customer/profile/bookings" replace />} />
-            <Route path="properties" element={<Explore />} />
-            <Route path="property/:id" element={<PropertyDetails />} />
             <Route path="book" element={<Booking />} />
             <Route path="profile" element={<Profile />} />
             <Route path="profile/:tab" element={<Profile />} />
@@ -51,6 +54,7 @@ function AnimatedRoutes() {
           </Route>
         </Route>
 
+        {/* Owner Routes */}
         <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
           <Route path="/owner/*" element={<OwnerLayout />}>
             <Route path="dashboard" element={<OwnerDashboard />} />
@@ -60,6 +64,7 @@ function AnimatedRoutes() {
           </Route>
         </Route>
 
+        {/* Admin Routes */}
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
@@ -71,13 +76,8 @@ function AnimatedRoutes() {
           </Route>
         </Route>
 
-        {/* Legacy profile route - redirect to role-specific profile */}
-        <Route element={<ProtectedRoute allowedRoles={['customer', 'owner', 'admin']} />}>
-          <Route path="/profile" element={<Navigate to="/owner/profile" replace />} />
-        </Route>
-
-        {/* Default Redirect */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Default Redirect to Customer Home */}
+        <Route path="*" element={<Navigate to="/customer" replace />} />
       </Routes>
     </AnimatePresence>
   );

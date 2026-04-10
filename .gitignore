@@ -9,6 +9,8 @@ lerna-debug.log*
 
 # Dependencies
 node_modules
+backend/node_modules
+frontend/node_modules
 
 # Build output
 dist
@@ -56,3 +58,12 @@ Thumbs.db
 # Data
 *.csv
 data_prep/
+scratch/
+backend/scratch/
+frontend/scratch/
+
+# Secrets
+serviceAccountKey.json
+backend/serviceAccountKey.json
+*.p12
+*.pem

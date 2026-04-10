@@ -31,17 +31,12 @@ jobs:
             echo "==> Pulling latest code from Git..."
             git pull origin main
 
-            echo "==> Stopping existing containers..."
-            docker compose down
+            echo "==> Hot-swapping containers with 2 Replicas (Zero Downtime)..."
+            docker compose up -d --build --remove-orphans --scale backend=2
 
-            echo "==> Rebuilding Docker images (no cache for fresh build)..."
-            docker compose build --no-cache
-
-            echo "==> Starting containers in detached mode..."
-            docker compose up -d
-
-            echo "==> Removing dangling/unused Docker images to free space..."
+            echo "==> Cleaning up old images and volumes..."
             docker image prune -f
+            docker volume prune -f
 
             echo "==> Deployment complete! Container status:"
             docker compose ps

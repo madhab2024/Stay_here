@@ -82,6 +82,30 @@ exports.getPublicProperties = async (req, res, next) => {
     }
 };
 
+// @desc    Get single property
+// @route   GET /properties/:id
+// @access  Public
+exports.getProperty = async (req, res, next) => {
+    try {
+        const property = await Property.findById(req.params.id)
+            .populate('ownerId', 'email')
+            .populate('rooms');
+
+        if (!property) {
+            const error = new Error('Property not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        res.status(200).json({
+            success: true,
+            data: property
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Get all properties (Admin)
 // @route   GET /admin/properties
 // @access  Private (Admin)

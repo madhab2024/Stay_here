@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
+import { useProperties } from "../context/PropertyContext";
 import { useState, useEffect } from "react";
 import {
     DropdownMenu,
@@ -9,11 +10,12 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, User, Menu, X, Briefcase, Heart, MapPin, Home, Compass, Tag, CreditCard, Lock, Search, ChevronDown, Phone, Globe } from "lucide-react";
+import { LogOut, User, Menu, X, Briefcase, Heart, MapPin, Home, Compass, Tag, CreditCard, Lock, Search, ChevronDown, Phone, Globe, Star } from "lucide-react";
 import HostStatusBadge from "../components/HostStatusBadge";
 
 const CustomerLayout = () => {
     const { user, role, upgradeToOwner, logout } = useAuth();
+    const { properties } = useProperties();
     const navigate = useNavigate();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -118,7 +120,7 @@ const CustomerLayout = () => {
                         {/* Block 4: Phone Support */}
                         <div className="hidden md:flex flex-col justify-center px-4 border-r border-gray-200 h-full hover:bg-gray-50 cursor-pointer transition-colors">
                             <span className="text-[13px] font-bold text-gray-900 flex items-center gap-1.5 leading-tight">
-                                <Phone size={14} className="text-gray-600 stroke-[2.5]" /> 0124-6201611
+                                <Phone size={14} className="text-gray-600 stroke-[2.5]" /> 9907347792
                             </span>
                             <span className="text-[11px] text-gray-500 leading-tight tracking-tight mt-0.5">Call us to Book now</span>
                         </div>
@@ -174,37 +176,62 @@ const CustomerLayout = () => {
                                     </div>
 
                                     {/* Menu Items */}
-                                    <DropdownMenuItem
-                                        onClick={() => navigate('/customer/profile')}
-                                        className="cursor-pointer rounded-xl px-3 py-3 my-1 hover:bg-gray-50 focus:bg-gray-50 outline-none transition-colors group"
-                                    >
-                                        <User size={18} className="mr-3 text-gray-400 group-hover:text-gray-700 stroke-2 transition-colors" />
-                                        <span className="font-semibold text-gray-700">Account settings</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={() => navigate('/customer/profile/bookings')}
-                                        className="cursor-pointer rounded-xl px-3 py-3 my-1 hover:bg-gray-50 focus:bg-gray-50 outline-none transition-colors group"
-                                    >
-                                        <Briefcase size={18} className="mr-3 text-gray-400 group-hover:text-gray-700 stroke-2 transition-colors" />
-                                        <span className="font-semibold text-gray-700">My Trips</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={() => navigate('/customer/profile/saved')}
-                                        className="cursor-pointer rounded-xl px-3 py-3 my-1 hover:bg-gray-50 focus:bg-gray-50 outline-none transition-colors group"
-                                    >
-                                        <Heart size={18} className="mr-3 text-gray-400 group-hover:text-[#FF405A] stroke-2 transition-colors" />
-                                        <span className="font-semibold text-gray-700">Saved Properties</span>
-                                    </DropdownMenuItem>
+                                    {user ? (
+                                        <>
+                                            <DropdownMenuItem
+                                                onClick={() => navigate('/customer/profile')}
+                                                className="cursor-pointer rounded-xl px-3 py-3 my-1 hover:bg-gray-50 focus:bg-gray-50 outline-none transition-colors group"
+                                            >
+                                                <User size={18} className="mr-3 text-gray-400 group-hover:text-gray-700 stroke-2 transition-colors" />
+                                                <span className="font-semibold text-gray-700">Account settings</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() => navigate('/customer/profile/bookings')}
+                                                className="cursor-pointer rounded-xl px-3 py-3 my-1 hover:bg-gray-50 focus:bg-gray-50 outline-none transition-colors group"
+                                            >
+                                                <Briefcase size={18} className="mr-3 text-gray-400 group-hover:text-gray-700 stroke-2 transition-colors" />
+                                                <span className="font-semibold text-gray-700">My Trips</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() => navigate('/customer/profile/saved')}
+                                                className="cursor-pointer rounded-xl px-3 py-3 my-1 hover:bg-gray-50 focus:bg-gray-50 outline-none transition-colors group"
+                                            >
+                                                <Heart size={18} className="mr-3 text-gray-400 group-hover:text-[#FF405A] stroke-2 transition-colors" />
+                                                <span className="font-semibold text-gray-700">Saved Properties</span>
+                                            </DropdownMenuItem>
 
-                                    <DropdownMenuSeparator className="my-2 bg-gray-100" />
+                                            <DropdownMenuSeparator className="my-2 bg-gray-100" />
 
-                                    <DropdownMenuItem
-                                        onClick={handleLogout}
-                                        className="cursor-pointer rounded-xl px-3 py-3 my-1 hover:bg-red-50 focus:bg-red-50 outline-none transition-colors text-red-600 group"
-                                    >
-                                        <LogOut size={18} className="mr-3 text-red-500 group-hover:text-red-600 stroke-2 transition-colors" />
-                                        <span className="font-bold">Log out</span>
-                                    </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={handleLogout}
+                                                className="cursor-pointer rounded-xl px-3 py-3 my-1 hover:bg-red-50 focus:bg-red-50 outline-none transition-colors text-red-600 group"
+                                            >
+                                                <LogOut size={18} className="mr-3 text-red-500 group-hover:text-red-600 stroke-2 transition-colors" />
+                                                <span className="font-bold">Log out</span>
+                                            </DropdownMenuItem>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="px-2 py-2 mb-2">
+                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 pl-1">Join Stay Here</p>
+                                                <button 
+                                                    onClick={() => navigate('/login')}
+                                                    className="w-full bg-[#FF405A] text-white font-bold py-3 rounded-xl shadow-md hover:bg-[#e0354d] transition-all mb-2 active:scale-95"
+                                                >
+                                                    Login
+                                                </button>
+                                                <button 
+                                                    onClick={() => navigate('/register')}
+                                                    className="w-full bg-white text-gray-900 border border-gray-200 font-bold py-3 rounded-xl hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
+                                                >
+                                                    Create Account
+                                                </button>
+                                            </div>
+                                            <div className="px-3 py-2 text-[11px] text-gray-400 text-center font-medium">
+                                                By proceeding, you agree to our Terms and Conditions.
+                                            </div>
+                                        </>
+                                    )}
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
@@ -215,14 +242,68 @@ const CustomerLayout = () => {
                 {/* Bottom Strip (Cities) */}
                 <div className="w-full bg-gray-100/60 border-b border-gray-200 hidden md:block">
                   <div className="max-w-[1400px] mx-auto px-4 flex items-center justify-between h-[42px] text-[13px] text-gray-600 font-medium">
-                     {/* List of cities */}
-                     <div className="flex items-center w-full justify-between">
-                        {['Bangalore', 'Chennai', 'Delhi', 'Gurgaon', 'Hyderabad', 'Kolkata', 'Mumbai', 'Noida', 'Pune'].map(city => (
-                            <span key={city} className="hover:text-gray-900 cursor-pointer flex items-center gap-1 transition-colors">
-                                {city} <ChevronDown size={12} className="text-gray-400 mt-0.5"/>
-                            </span>
-                        ))}
-                        <span className="font-bold text-gray-900 cursor-pointer hover:underline">All Cities</span>
+                     {/* List of cities with Dynamic Property Dropdowns */}
+                     <div className="flex items-center w-full justify-between gap-2 overflow-x-auto no-scrollbar">
+                        {['Bangalore', 'Chennai', 'Delhi', 'Gurgaon', 'Hyderabad', 'Kolkata', 'Mumbai', 'Noida', 'Pune'].map(cityName => {
+                            // Find properties in this city
+                            const cityProps = properties?.filter(p => 
+                                p.status === 'approved' && 
+                                (p.location?.toLowerCase().includes(cityName.toLowerCase()) || 
+                                 p.city?.toLowerCase().includes(cityName.toLowerCase()))
+                            ).slice(0, 6); // Top 6 properties
+
+                            return (
+                                <DropdownMenu key={cityName}>
+                                    <DropdownMenuTrigger asChild>
+                                        <div 
+                                            className="hover:text-gray-900 cursor-pointer flex items-center gap-1 transition-colors group py-1"
+                                            onClick={() => navigate('/customer/properties', { state: { location: cityName } })}
+                                        >
+                                            <span className="group-hover:underline underline-offset-4 decoration-2 decoration-[#FF405A]/30 transition-all font-semibold">
+                                                {cityName}
+                                            </span>
+                                            <ChevronDown size={12} className="text-gray-400 mt-0.5 group-hover:text-[#FF405A] transition-colors"/>
+                                        </div>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-64 p-2 rounded-2xl shadow-2xl border border-gray-100 bg-white/95 backdrop-blur-md">
+                                        <div className="px-3 py-2 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">
+                                            Stay in {cityName}
+                                        </div>
+                                        {cityProps?.length > 0 ? (
+                                            cityProps.map(prop => (
+                                                <DropdownMenuItem 
+                                                    key={prop.id || prop._id}
+                                                    onClick={() => navigate(`/customer/property/${prop.id || prop._id}`)}
+                                                    className="rounded-xl px-3 py-2.5 hover:bg-[#FF405A]/5 focus:bg-[#FF405A]/5 cursor-pointer group transition-all"
+                                                >
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-gray-800 text-sm group-hover:text-[#FF405A] transition-colors truncate">
+                                                            {prop.name}
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                            <Star size={10} className="fill-yellow-400 text-yellow-400" />
+                                                            {prop.rating > 0 ? prop.rating.toFixed(1) : 'New'} · Starting ₹{prop.rooms?.[0]?.basePrice || prop.price || 'Call'}
+                                                        </span>
+                                                    </div>
+                                                </DropdownMenuItem>
+                                            ))
+                                        ) : (
+                                            <div className="px-3 py-4 text-center text-gray-400 italic text-xs">
+                                                No properties listed yet
+                                            </div>
+                                        )}
+                                        <DropdownMenuSeparator className="bg-gray-100" />
+                                        <DropdownMenuItem 
+                                            onClick={() => navigate('/customer/properties', { state: { location: cityName } })}
+                                            className="justify-center font-bold text-[#FF405A] hover:text-[#FF405A] focus:text-[#FF405A] py-2 text-xs"
+                                        >
+                                            View All in {cityName}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )
+                        })}
+                        <span className="font-bold text-gray-900 cursor-pointer hover:underline shrink-0 ml-4">All Cities</span>
                      </div>
                   </div>
                 </div>

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, ChevronRight, ChevronLeft, Calendar, Users, User, Star } from 'lucide-react';
 import { useProperties } from '../../context/PropertyContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -76,43 +77,31 @@ const Home = () => {
   const guestOptions = [
     { value: 1, label: 'Solo', icon: <User size={28} className="text-gray-500 mb-2"/> },
     { value: 2, label: 'Couple', icon: <div className="flex mb-2"><User size={28} className="text-[#FF405A] -mr-1 z-10"/><User size={28} className="text-gray-500"/></div> },
-    { value: 3, label: 'Small Family', icon: <div className="flex items-end mb-2"><User size={28} className="text-gray-500"/><User size={28} className="text-[#FF405A] -ml-2 -mr-1 z-10"/><User size={22} className="text-teal-600"/></div> },
+    { value: 3, label: 'Small Family', icon: <div className="flex items-end mb-2"><User size={28} className="text-gray-500"/><User size={28} className="text-[#FF405A] -mr-1 z-10"/><User size={22} className="text-teal-600"/></div> },
     { value: 4, label: 'Family', icon: <div className="flex items-end mb-2"><User size={28} className="text-gray-500"/><User size={28} className="text-[#FF405A] -ml-2 z-10"/><User size={22} className="text-teal-600"/><User size={22} className="text-indigo-500 -ml-1"/></div> },
     { value: 5, label: 'Group (5 max)', icon: <div className="flex items-end mb-2"><Users size={32} className="text-[#FF405A]"/><Users size={32} className="text-gray-500 -ml-2 z-10"/></div> },
   ];
 
-  const destinations = [
-    {
-      id: 1,
-      name: 'Mumbai',
-      image: 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8bXVtYmFpfGVufDB8fDB8fHww',
-    },
-    {
-      id: 2,
-      name: 'Jaipur',
-      image: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?q=80&w=600&auto=format&fit=crop',
-    },
-    {
-      id: 3,
-      name: 'Agra',
-      image: 'https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600&auto=format&fit=crop',
-    },
-    {
-      id: 4,
-      name: 'Varanasi',
-      image: 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?q=80&w=600&auto=format&fit=crop',
-    },
-    {
-      id: 5,
-      name: 'Goa',
-      image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?q=80&w=600&auto=format&fit=crop',
-    },
-    {
-      id: 6,
-      name: 'Udaipur',
-      image: 'https://images.unsplash.com/photo-1596423735880-5f2a689b903e?q=80&w=600&auto=format&fit=crop',
-    },
-  ];
+  const destinationsPool = useMemo(() => [
+    { id: 1, name: 'Mumbai', image: 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?w=600&auto=format&fit=crop' },
+    { id: 2, name: 'Jaipur', image: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?q=80&w=600&auto=format&fit=crop' },
+    { id: 3, name: 'Agra', image: 'https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600&auto=format&fit=crop' },
+    { id: 4, name: 'Goa', image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600&auto=format&fit=crop' },
+    { id: 5, name: 'Varanasi', image: 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=600&auto=format&fit=crop' },
+    { id: 6, name: 'Udaipur', image: 'https://images.unsplash.com/photo-1590483736622-39da3a5ae893?w=600&auto=format&fit=crop' },
+    { id: 7, name: 'Manali', image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=600&auto=format&fit=crop' },
+    { id: 8, name: 'Munnar', image: 'https://images.unsplash.com/photo-1593693397690-362cb9666fc2?w=600&auto=format&fit=crop' },
+    { id: 9, name: 'Rishikesh', image: 'https://images.unsplash.com/photo-1598977123418-45455531714f?w=600&auto=format&fit=crop' },
+    { id: 10, name: 'Kolkata', image: 'https://images.unsplash.com/photo-1558431382-27e39cbef4bc?w=600&auto=format&fit=crop' }
+  ], []);
+
+  const destinations = useMemo(() => {
+    return [...destinationsPool].sort(() => 0.5 - Math.random()).slice(0, 6);
+  }, [destinationsPool]);
+
+  const handleDestinationClick = (destName) => {
+    navigate('/customer/properties', { state: { location: destName } });
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -130,28 +119,63 @@ const Home = () => {
     return shuffled.slice(0, 8);
   }, [properties]);
 
+  const heroImages = useMemo(() => {
+    const defaultImage = "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80";
+    if (!properties || properties.length === 0) return [defaultImage];
+    
+    const listingImages = properties
+      .filter(p => p.status === 'approved' && (p.coverImage || p.image))
+      .map(p => p.coverImage || p.image);
+      
+    return listingImages.length > 0 ? listingImages.slice(0, 10) : [defaultImage];
+  }, [properties]);
+
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
+
+  useEffect(() => {
+    if (heroImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentHeroIndex((prev) => (prev + 1) % heroImages.length);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, [heroImages]);
+
   return (
     <div className="min-h-screen bg-white">
-      {/* Full-width Hero Section */}
-      <section 
-        className="relative h-[80vh] w-full mb-20 overflow-visible flex flex-col justify-center"
-        style={{
-          backgroundImage: 'url("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        {/* Background Overlay */}
-        <div className="absolute inset-0 z-0 bg-black/40" />
+      {/* Full-width Hero Section - Dynamic Carousel */}
+      <section className="relative h-[85vh] w-full mb-20 overflow-visible flex flex-col justify-center">
+        {/* Background Animation Container */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <AnimatePresence>
+            <motion.div
+              key={currentHeroIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 2, ease: "linear" }}
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${heroImages[currentHeroIndex]})` }}
+            />
+          </AnimatePresence>
+          {/* Constant Overlay */}
+          <div className="absolute inset-0 bg-black/45 z-10" />
+        </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 w-full flex flex-col items-center px-4">
-          <h1 className="text-5xl md:text-7xl font-bold text-white text-center mb-4 tracking-tight drop-shadow-lg">
-            Find your next stay
-          </h1>
-          <p className="text-xl md:text-2xl text-white/90 text-center mb-16 drop-shadow-md">
-            Search deals on hotels, homes, and much more...
-          </p>
+        <div className="relative z-20 w-full flex flex-col items-center px-4">
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="text-center"
+          >
+            <h1 className="text-5xl md:text-8xl font-black text-white text-center mb-6 tracking-tight drop-shadow-2xl">
+              Stay <span className="text-[#FF405A]">Everywhere</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-white/90 text-center mb-12 drop-shadow-lg font-medium max-w-2xl mx-auto leading-relaxed">
+              Explore thousands of unique homes and hotels at the best rates in India.
+            </p>
+          </motion.div>
 
           {/* Pill Search Form inside the hero */}
           <div className="w-full max-w-5xl mt-8 px-4 relative z-50" ref={datePickerRef}>
@@ -347,6 +371,7 @@ const Home = () => {
           {destinations.map((destination) => (
             <div
               key={destination.id}
+              onClick={() => handleDestinationClick(destination.name)}
               className="group relative h-64 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition cursor-pointer"
             >
               <img
