@@ -1,5 +1,7 @@
-# Use Node.js 20 image
 FROM node:20-alpine
+
+# Install curl for health-checks
+RUN apk add --no-cache curl
 
 # Set working directory inside the container
 WORKDIR /usr/src/app
