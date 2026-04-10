@@ -186,7 +186,7 @@ const Home = () => {
                     <label className="text-[11px] font-bold tracking-wider text-orange-600 mb-1 uppercase">Location</label>
                     <input
                       type="text"
-                      placeholder="Where are you going?"
+                      placeholder="Find your next adventure..."
                       value={location}
                       onFocus={() => setActivePopup('location')}
                       onChange={(e) => { setLocation(e.target.value); setActivePopup('location'); }}
